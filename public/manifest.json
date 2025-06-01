@@ -1,20 +1,48 @@
 {
-  "name": "CareAI - Assistente Pessoal Inteligente",
+  "name": "CareAI - Assistente Freech",
   "short_name": "CareAI",
-  "description": "Gerencie sua rotina diária com inteligência artificial",
+  "description": "Seu assistente pessoal Freech para organizar sua vida com inteligência artificial",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#1a1a1a",
+  "background_color": "#000000",
   "theme_color": "#3b82f6",
   "orientation": "portrait-primary",
   "icons": [
     {
+      "src": "/freech-avatar.jpg",
+      "sizes": "192x192",
+      "type": "image/jpeg",
+      "purpose": "any"
+    },
+    {
+      "src": "/freech-avatar.jpg",
+      "sizes": "512x512",
+      "type": "image/jpeg",
+      "purpose": "any maskable"
+    },
+    {
       "src": "/favicon.svg",
       "sizes": "any",
       "type": "image/svg+xml",
-      "purpose": "any maskable"
+      "purpose": "any"
     }
   ],
   "categories": ["productivity", "business", "utilities"],
-  "lang": "pt-BR"
+  "lang": "pt-BR",
+  "scope": "/",
+  "id": "careai-freech",
+  "shortcuts": [
+    {
+      "name": "Chat com Freech",
+      "short_name": "Chat",
+      "description": "Conversar diretamente com o Freech",
+      "url": "/?view=chat",
+      "icons": [
+        {
+          "src": "/freech-avatar.jpg",
+          "sizes": "96x96"
+        }
+      ]
+    }
+  ]
 }
