@@ -455,4 +455,15 @@
       @apply px-3 py-2 text-sm;
     }
   }
+
+  /* Forçar ícones brancos em botões */
+  button svg {
+    color: #ffffff !important;
+    stroke: #ffffff !important;
+    fill: none !important;
+  }
+
+  button svg path {
+    stroke: #ffffff !important;
+  }
 }
