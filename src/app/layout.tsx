@@ -10,6 +10,19 @@ export const metadata: Metadata = {
   description:
     'Gerencie sua rotina diária com inteligência artificial. Organize tarefas, agenda, metas e muito mais.',
   keywords: 'assistente AI, produtividade, agenda, tarefas, metas',
+  icons: {
+    icon: [
+      {
+        url: '/favicon.svg',
+        type: 'image/svg+xml',
+      },
+    ],
+    shortcut: '/favicon.svg',
+    apple: '/favicon.svg',
+  },
+  manifest: '/manifest.json',
+  themeColor: '#1a1a1a',
+  viewport: 'width=device-width, initial-scale=1, maximum-scale=1',
 }
 
 export default function RootLayout({

@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { store } from '@/lib/store'
 import { Task } from '@/types'
 import { formatDate, getPriorityColor } from '@/lib/utils'
 import {
@@ -10,6 +9,7 @@ import {
   ClockIcon,
   FunnelIcon,
   TrashIcon,
+  PencilIcon,
 } from '@heroicons/react/24/outline'
 import toast from 'react-hot-toast'
 
@@ -19,10 +19,18 @@ export default function Tasks() {
   const [filter, setFilter] = useState<'all' | 'pending' | 'completed'>('all')
   const [priorityFilter, setPriorityFilter] = useState<string>('all')
   const [showForm, setShowForm] = useState(false)
-  const [formData, setFormData] = useState({
+  const [isEditMode, setIsEditMode] = useState(false)
+  const [selectedTask, setSelectedTask] = useState<Task | null>(null)
+  const [formData, setFormData] = useState<{
+    title: string
+    description: string
+    priority: string
+    category: string
+    dueDate: string
+  }>({
     title: '',
     description: '',
-    priority: 'média' as Task['priority'],
+    priority: 'MEDIUM',
     category: 'Trabalho',
     dueDate: '',
   })
@@ -35,9 +43,22 @@ export default function Tasks() {
     applyFilters()
   }, [tasks, filter, priorityFilter])
 
-  const loadTasks = () => {
-    const allTasks = store.getTasks()
-    setTasks(allTasks)
+  const loadTasks = async () => {
+    try {
+      console.log('📋 Carregando tarefas da API...')
+      const response = await fetch('/api/tasks?userId=user_1')
+      if (response.ok) {
+        const data = await response.json()
+        console.log('✅ Tarefas carregadas:', data.tasks?.length || 0)
+        setTasks(data.tasks || [])
+      } else {
+        console.error('❌ Erro ao carregar tarefas:', response.statusText)
+        toast.error('Erro ao carregar tarefas')
+      }
+    } catch (error) {
+      console.error('❌ Erro ao carregar tarefas:', error)
+      toast.error('Erro ao conectar com o servidor')
+    }
   }
 
   const applyFilters = () => {
@@ -57,9 +78,11 @@ export default function Tasks() {
 
     // Ordenar por prioridade e data
     filtered.sort((a, b) => {
-      const priorityOrder = { crítica: 4, alta: 3, média: 2, baixa: 1 }
-      const aPriority = priorityOrder[a.priority]
-      const bPriority = priorityOrder[b.priority]
+      const priorityOrder = { CRITICAL: 4, HIGH: 3, MEDIUM: 2, LOW: 1 }
+      const aPriority =
+        priorityOrder[a.priority as keyof typeof priorityOrder] || 2
+      const bPriority =
+        priorityOrder[b.priority as keyof typeof priorityOrder] || 2
 
       if (aPriority !== bPriority) {
         return bPriority - aPriority
@@ -71,55 +94,180 @@ export default function Tasks() {
     setFilteredTasks(filtered)
   }
 
-  const handleCreateTask = () => {
+  const handleCreateTask = async () => {
     if (!formData.title.trim()) {
       toast.error('Título é obrigatório')
       return
     }
 
-    const newTask = store.addTask({
-      title: formData.title,
-      description: formData.description,
-      priority: formData.priority,
-      category: formData.category,
-      completed: false,
-      dueDate: formData.dueDate ? new Date(formData.dueDate) : undefined,
-    })
+    try {
+      const response = await fetch('/api/tasks', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: formData.title,
+          description: formData.description,
+          priority: formData.priority,
+          category: formData.category,
+          dueDate: formData.dueDate
+            ? new Date(formData.dueDate).toISOString()
+            : null,
+          userId: 'user_1',
+        }),
+      })
 
-    setTasks((prev) => [...prev, newTask])
+      if (response.ok) {
+        const data = await response.json()
+        setTasks((prev) => [data.task, ...prev])
+        resetForm()
+        setShowForm(false)
+        toast.success('Tarefa criada com sucesso!')
+      } else {
+        const error = await response.json()
+        toast.error(error.error || 'Erro ao criar tarefa')
+      }
+    } catch (error) {
+      console.error('Erro ao criar tarefa:', error)
+      toast.error('Erro ao conectar com o servidor')
+    }
+  }
+
+  const handleEditTask = async () => {
+    if (!formData.title.trim() || !selectedTask) {
+      toast.error('Título é obrigatório')
+      return
+    }
+
+    try {
+      const response = await fetch('/api/tasks', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: selectedTask.id,
+          title: formData.title,
+          description: formData.description,
+          priority: formData.priority,
+          category: formData.category,
+          dueDate: formData.dueDate
+            ? new Date(formData.dueDate).toISOString()
+            : null,
+        }),
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        setTasks((prev) =>
+          prev.map((t) => (t.id === selectedTask.id ? data.task : t))
+        )
+        resetForm()
+        setShowForm(false)
+        setIsEditMode(false)
+        setSelectedTask(null)
+        toast.success('Tarefa atualizada com sucesso!')
+      } else {
+        const error = await response.json()
+        toast.error(error.error || 'Erro ao atualizar tarefa')
+      }
+    } catch (error) {
+      console.error('Erro ao atualizar tarefa:', error)
+      toast.error('Erro ao conectar com o servidor')
+    }
+  }
+
+  const openEditModal = (task: Task) => {
+    setSelectedTask(task)
+    setFormData({
+      title: task.title,
+      description: task.description || '',
+      priority: task.priority,
+      category: task.category,
+      dueDate: task.dueDate ? formatDateForInput(task.dueDate) : '',
+    })
+    setIsEditMode(true)
+    setShowForm(true)
+  }
+
+  const resetForm = () => {
     setFormData({
       title: '',
       description: '',
-      priority: 'média',
+      priority: 'MEDIUM',
       category: 'Trabalho',
       dueDate: '',
     })
-    setShowForm(false)
-    toast.success('Tarefa criada com sucesso!')
   }
 
-  const toggleTaskCompletion = (taskId: string) => {
+  const formatDateForInput = (date: Date | string) => {
+    const dateObj = typeof date === 'string' ? new Date(date) : date
+    return dateObj.toISOString().split('T')[0]
+  }
+
+  const toggleTaskCompletion = async (taskId: string) => {
     const task = tasks.find((t) => t.id === taskId)
     if (!task) return
 
-    const updatedTask = store.updateTask(taskId, { completed: !task.completed })
-    if (updatedTask) {
-      setTasks((prev) => prev.map((t) => (t.id === taskId ? updatedTask : t)))
-      toast.success(
-        updatedTask.completed ? 'Tarefa concluída!' : 'Tarefa reaberta!'
-      )
+    try {
+      const response = await fetch('/api/tasks', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: taskId,
+          completed: !task.completed,
+        }),
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        setTasks((prev) => prev.map((t) => (t.id === taskId ? data.task : t)))
+        toast.success(
+          data.task.completed ? 'Tarefa concluída!' : 'Tarefa reaberta!'
+        )
+      } else {
+        const error = await response.json()
+        toast.error(error.error || 'Erro ao atualizar tarefa')
+      }
+    } catch (error) {
+      console.error('Erro ao atualizar tarefa:', error)
+      toast.error('Erro ao conectar com o servidor')
     }
   }
 
-  const deleteTask = (taskId: string) => {
-    if (store.deleteTask(taskId)) {
-      setTasks((prev) => prev.filter((t) => t.id !== taskId))
-      toast.success('Tarefa excluída!')
+  const deleteTask = async (taskId: string) => {
+    if (!confirm('Tem certeza que deseja excluir esta tarefa?')) return
+
+    try {
+      const response = await fetch(`/api/tasks?id=${taskId}`, {
+        method: 'DELETE',
+      })
+
+      if (response.ok) {
+        setTasks((prev) => prev.filter((t) => t.id !== taskId))
+        toast.success('Tarefa excluída!')
+      } else {
+        const error = await response.json()
+        toast.error(error.error || 'Erro ao excluir tarefa')
+      }
+    } catch (error) {
+      console.error('Erro ao excluir tarefa:', error)
+      toast.error('Erro ao conectar com o servidor')
     }
   }
 
-  const categories = store.getPreferences().categories.tasks
-  const priorities = ['crítica', 'alta', 'média', 'baixa']
+  const categories = [
+    'Trabalho',
+    'Pessoal',
+    'Estudos',
+    'Saúde',
+    'Casa',
+    'Outros',
+  ]
+  const priorities = ['CRITICAL', 'HIGH', 'MEDIUM', 'LOW']
+  const priorityLabels = {
+    CRITICAL: 'Crítica',
+    HIGH: 'Alta',
+    MEDIUM: 'Média',
+    LOW: 'Baixa',
+  }
 
   return (
     <div className="p-6 max-w-6xl mx-auto space-y-6">
@@ -168,7 +316,7 @@ export default function Tasks() {
             <option value="all">Todas as Prioridades</option>
             {priorities.map((priority) => (
               <option key={priority} value={priority}>
-                {priority}
+                {priorityLabels[priority as keyof typeof priorityLabels]}
               </option>
             ))}
           </select>
@@ -223,7 +371,11 @@ export default function Tasks() {
                           task.priority
                         )}`}
                       >
-                        {task.priority}
+                        {
+                          priorityLabels[
+                            task.priority as keyof typeof priorityLabels
+                          ]
+                        }
                       </span>
                       {task.dueDate && (
                         <div className="flex items-center space-x-1 text-xs text-white/50">
@@ -235,12 +387,21 @@ export default function Tasks() {
                   </div>
                 </div>
 
-                <button
-                  onClick={() => deleteTask(task.id)}
-                  className="icon-btn !w-8 !h-8 text-red-400 hover:text-red-300"
-                >
-                  <TrashIcon className="w-4 h-4" />
-                </button>
+                <div className="flex items-center space-x-2">
+                  <button
+                    onClick={() => openEditModal(task)}
+                    className="icon-btn !w-8 !h-8 text-yellow-400 hover:text-yellow-300"
+                  >
+                    <PencilIcon className="w-4 h-4" />
+                  </button>
+
+                  <button
+                    onClick={() => deleteTask(task.id)}
+                    className="icon-btn !w-8 !h-8 text-red-400 hover:text-red-300"
+                  >
+                    <TrashIcon className="w-4 h-4" />
+                  </button>
+                </div>
               </div>
             </div>
           ))
@@ -260,12 +421,12 @@ export default function Tasks() {
         )}
       </div>
 
-      {/* Create Task Form Modal */}
+      {/* Create/Edit Task Form Modal */}
       {showForm && (
         <div className="modal-overlay">
           <div className="modal-content max-w-md">
             <h3 className="text-lg font-semibold text-white mb-4">
-              Nova Tarefa
+              {isEditMode ? 'Editar Tarefa' : 'Nova Tarefa'}
             </h3>
 
             <div className="space-y-4">
@@ -311,14 +472,18 @@ export default function Tasks() {
                     onChange={(e) =>
                       setFormData((prev) => ({
                         ...prev,
-                        priority: e.target.value as Task['priority'],
+                        priority: e.target.value,
                       }))
                     }
                     className="input-dark w-full"
                   >
                     {priorities.map((priority) => (
                       <option key={priority} value={priority}>
-                        {priority}
+                        {
+                          priorityLabels[
+                            priority as keyof typeof priorityLabels
+                          ]
+                        }
                       </option>
                     ))}
                   </select>
@@ -367,13 +532,22 @@ export default function Tasks() {
 
             <div className="flex space-x-3 mt-6">
               <button
-                onClick={() => setShowForm(false)}
+                onClick={() => {
+                  setShowForm(false)
+                  setIsEditMode(false)
+                  setSelectedTask(null)
+                  resetForm()
+                }}
                 className="flex-1 btn-ghost"
               >
                 Cancelar
               </button>
-              <button onClick={handleCreateTask} className="flex-1 btn-primary">
-                Criar Tarefa
+              <button
+                onClick={isEditMode ? handleEditTask : handleCreateTask}
+                className="flex-1 btn-primary"
+                disabled={!formData.title.trim()}
+              >
+                {isEditMode ? 'Salvar Alterações' : 'Criar Tarefa'}
               </button>
             </div>
           </div>

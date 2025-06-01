@@ -26,24 +26,21 @@ interface Goal {
   title: string
   description: string
   category: string
-  priority: 'baixa' | 'média' | 'alta' | 'crítica'
-  targetValue: number
-  currentValue: number
-  unit: string
-  deadline: string
-  status: 'não iniciada' | 'em andamento' | 'concluída' | 'pausada'
+  target: number
+  current: number
+  status: string
+  completed: boolean
+  deadline: string | null
   createdAt: string
-  completedAt?: string
+  updatedAt: string
 }
 
 interface GoalFormData {
   title: string
   description: string
   category: string
-  priority: 'baixa' | 'média' | 'alta' | 'crítica'
   targetValue: number
   currentValue: number
-  unit: string
   deadline: string
 }
 
@@ -57,82 +54,58 @@ const categories = [
   'Hobbies',
 ]
 
-const priorityConfig = {
-  baixa: {
-    color: 'text-green-300',
-    bg: 'bg-green-500/20',
-    border: 'border-green-500/30',
-  },
-  média: {
-    color: 'text-yellow-300',
-    bg: 'bg-yellow-500/20',
-    border: 'border-yellow-500/30',
-  },
-  alta: {
-    color: 'text-orange-300',
-    bg: 'bg-orange-500/20',
-    border: 'border-orange-500/30',
-  },
-  crítica: {
-    color: 'text-red-300',
-    bg: 'bg-red-500/20',
-    border: 'border-red-500/30',
-  },
-}
-
 const mockGoals: Goal[] = [
   {
     id: '1',
     title: 'Aprender TypeScript',
     description: 'Dominar TypeScript para desenvolvimento web moderno',
     category: 'Estudos',
-    priority: 'alta',
-    targetValue: 100,
-    currentValue: 75,
-    unit: 'horas',
+    target: 100,
+    current: 75,
+    status: 'ACTIVE',
+    completed: false,
     deadline: '2024-03-31',
-    status: 'em andamento',
     createdAt: '2024-01-01T00:00:00Z',
+    updatedAt: '2024-01-01T00:00:00Z',
   },
   {
     id: '2',
     title: 'Exercitar-se 5x por semana',
     description: 'Manter consistência nos exercícios físicos',
     category: 'Saúde',
-    priority: 'média',
-    targetValue: 20,
-    currentValue: 12,
-    unit: 'semanas',
+    target: 20,
+    current: 12,
+    status: 'ACTIVE',
+    completed: false,
     deadline: '2024-06-30',
-    status: 'em andamento',
     createdAt: '2024-01-15T00:00:00Z',
+    updatedAt: '2024-01-15T00:00:00Z',
   },
   {
     id: '3',
     title: 'Economizar R$ 10.000',
     description: 'Reserva de emergência para o ano',
     category: 'Financeiro',
-    priority: 'crítica',
-    targetValue: 10000,
-    currentValue: 6500,
-    unit: 'reais',
+    target: 10000,
+    current: 6500,
+    status: 'ACTIVE',
+    completed: false,
     deadline: '2024-12-31',
-    status: 'em andamento',
     createdAt: '2024-01-01T00:00:00Z',
+    updatedAt: '2024-01-01T00:00:00Z',
   },
   {
     id: '4',
     title: 'Ler 24 livros',
     description: 'Meta de leitura para desenvolvimento pessoal',
     category: 'Pessoal',
-    priority: 'média',
-    targetValue: 24,
-    currentValue: 24,
-    unit: 'livros',
+    target: 24,
+    current: 24,
+    status: 'COMPLETED',
+    completed: true,
     deadline: '2024-12-31',
-    status: 'concluída',
     createdAt: '2024-01-01T00:00:00Z',
-    completedAt: '2024-01-20T00:00:00Z',
+    updatedAt: '2024-01-20T00:00:00Z',
   },
 ]
 
@@ -148,22 +121,45 @@ export default function Goals() {
     title: '',
     description: '',
     category: 'Pessoal',
-    priority: 'média',
     targetValue: 0,
     currentValue: 0,
-    unit: '',
     deadline: '',
   })
 
   useEffect(() => {
-    const savedGoals = localStorage.getItem('care-ai-goals')
-    if (savedGoals) {
-      setGoals(JSON.parse(savedGoals))
-    } else {
-      setGoals(mockGoals)
-      localStorage.setItem('care-ai-goals', JSON.stringify(mockGoals))
-    }
+    loadGoals()
   }, [])
+
+  const loadGoals = async () => {
+    try {
+      // Buscar metas da API do banco de dados
+      const response = await fetch('/api/goals?userId=user_1')
+      if (response.ok) {
+        const data = await response.json()
+        setGoals(data.goals || [])
+      } else {
+        console.error('Erro ao carregar metas:', response.statusText)
+        // Fallback para localStorage se API falhar
+        const savedGoals = localStorage.getItem('care-ai-goals')
+        if (savedGoals) {
+          setGoals(JSON.parse(savedGoals))
+        } else {
+          setGoals(mockGoals)
+          localStorage.setItem('care-ai-goals', JSON.stringify(mockGoals))
+        }
+      }
+    } catch (error) {
+      console.error('Erro ao carregar metas:', error)
+      // Fallback para localStorage
+      const savedGoals = localStorage.getItem('care-ai-goals')
+      if (savedGoals) {
+        setGoals(JSON.parse(savedGoals))
+      } else {
+        setGoals(mockGoals)
+        localStorage.setItem('care-ai-goals', JSON.stringify(mockGoals))
+      }
+    }
+  }
 
   const saveGoals = (newGoals: Goal[]) => {
     setGoals(newGoals)
@@ -195,99 +191,187 @@ export default function Goals() {
     return 'bg-red-500'
   }
 
-  const handleCreateGoal = () => {
+  const handleCreateGoal = async () => {
     if (!formData.title.trim()) return
 
     const newGoal: Goal = {
-      id: Date.now().toString(),
+      id: crypto.randomUUID(),
       title: formData.title,
       description: formData.description,
       category: formData.category,
-      priority: formData.priority,
-      targetValue: formData.targetValue,
-      currentValue: formData.currentValue,
-      unit: formData.unit,
+      target: formData.targetValue,
+      current: formData.currentValue,
+      status: 'ACTIVE',
+      completed: false,
       deadline: formData.deadline,
-      status: formData.currentValue > 0 ? 'em andamento' : 'não iniciada',
       createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
     }
 
     // Auto-complete if current value equals target
     if (formData.currentValue >= formData.targetValue) {
-      newGoal.status = 'concluída'
-      newGoal.completedAt = new Date().toISOString()
+      newGoal.status = 'COMPLETED'
+      newGoal.completed = true
     }
 
-    const updatedGoals = [newGoal, ...goals]
-    saveGoals(updatedGoals)
+    try {
+      // Tentar salvar na API
+      const response = await fetch('/api/goals', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...newGoal,
+          userId: 'user_1',
+          target: formData.targetValue,
+          current: formData.currentValue,
+        }),
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        setGoals([data.goal, ...goals])
+      } else {
+        // Fallback para localStorage se API falhar
+        const updatedGoals = [newGoal, ...goals]
+        setGoals(updatedGoals)
+        localStorage.setItem('care-ai-goals', JSON.stringify(updatedGoals))
+      }
+    } catch (error) {
+      // Fallback para localStorage
+      const updatedGoals = [newGoal, ...goals]
+      setGoals(updatedGoals)
+      localStorage.setItem('care-ai-goals', JSON.stringify(updatedGoals))
+    }
+
     setIsCreateModalOpen(false)
     resetForm()
   }
 
-  const handleEditGoal = () => {
+  const handleEditGoal = async () => {
     if (!selectedGoal || !formData.title.trim()) return
 
-    const updatedGoals = goals.map((goal) => {
-      if (goal.id === selectedGoal.id) {
-        const updatedGoal = {
-          ...goal,
-          title: formData.title,
-          description: formData.description,
-          category: formData.category,
-          priority: formData.priority,
-          targetValue: formData.targetValue,
-          currentValue: formData.currentValue,
-          unit: formData.unit,
-          deadline: formData.deadline,
-        }
+    const updatedGoal = {
+      ...selectedGoal,
+      title: formData.title,
+      description: formData.description,
+      category: formData.category,
+      target: formData.targetValue,
+      current: formData.currentValue,
+      deadline: formData.deadline,
+      updatedAt: new Date().toISOString(),
+    }
 
-        // Update status based on progress
-        if (
-          formData.currentValue >= formData.targetValue &&
-          goal.status !== 'concluída'
-        ) {
-          updatedGoal.status = 'concluída'
-          updatedGoal.completedAt = new Date().toISOString()
-        } else if (
-          formData.currentValue > 0 &&
-          goal.status === 'não iniciada'
-        ) {
-          updatedGoal.status = 'em andamento'
-        }
+    // Update status based on progress
+    if (
+      formData.currentValue >= formData.targetValue &&
+      selectedGoal.status !== 'COMPLETED'
+    ) {
+      updatedGoal.status = 'COMPLETED'
+      updatedGoal.completed = true
+    } else if (formData.currentValue > 0 && selectedGoal.status !== 'ACTIVE') {
+      updatedGoal.status = 'ACTIVE'
+      updatedGoal.completed = false
+    }
 
-        return updatedGoal
+    try {
+      // Tentar atualizar na API
+      const response = await fetch('/api/goals', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updatedGoal),
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        setGoals(
+          goals.map((goal) => (goal.id === selectedGoal.id ? data.goal : goal))
+        )
+      } else {
+        // Fallback para localStorage se API falhar
+        const updatedGoals = goals.map((goal) =>
+          goal.id === selectedGoal.id ? updatedGoal : goal
+        )
+        setGoals(updatedGoals)
+        localStorage.setItem('care-ai-goals', JSON.stringify(updatedGoals))
       }
-      return goal
-    })
+    } catch (error) {
+      // Fallback para localStorage
+      const updatedGoals = goals.map((goal) =>
+        goal.id === selectedGoal.id ? updatedGoal : goal
+      )
+      setGoals(updatedGoals)
+      localStorage.setItem('care-ai-goals', JSON.stringify(updatedGoals))
+    }
 
-    saveGoals(updatedGoals)
     setIsEditModalOpen(false)
     setSelectedGoal(null)
     resetForm()
   }
 
-  const handleDeleteGoal = (goalId: string) => {
-    const updatedGoals = goals.filter((goal) => goal.id !== goalId)
-    saveGoals(updatedGoals)
+  const handleDeleteGoal = async (goalId: string) => {
+    if (!confirm('Tem certeza que deseja excluir esta meta?')) return
+
+    try {
+      // Tentar deletar na API
+      const response = await fetch(`/api/goals?id=${goalId}`, {
+        method: 'DELETE',
+      })
+
+      if (response.ok) {
+        setGoals(goals.filter((goal) => goal.id !== goalId))
+      } else {
+        // Fallback para localStorage se API falhar
+        const updatedGoals = goals.filter((goal) => goal.id !== goalId)
+        setGoals(updatedGoals)
+        localStorage.setItem('care-ai-goals', JSON.stringify(updatedGoals))
+      }
+    } catch (error) {
+      // Fallback para localStorage
+      const updatedGoals = goals.filter((goal) => goal.id !== goalId)
+      setGoals(updatedGoals)
+      localStorage.setItem('care-ai-goals', JSON.stringify(updatedGoals))
+    }
   }
 
-  const updateProgress = (goalId: string, newValue: number) => {
-    const updatedGoals = goals.map((goal) => {
-      if (goal.id === goalId) {
-        const updatedGoal = { ...goal, currentValue: newValue }
+  const updateProgress = async (goalId: string, newValue: number) => {
+    const goal = goals.find((g) => g.id === goalId)
+    if (!goal) return
 
-        if (newValue >= goal.targetValue && goal.status !== 'concluída') {
-          updatedGoal.status = 'concluída'
-          updatedGoal.completedAt = new Date().toISOString()
-        } else if (newValue > 0 && goal.status === 'não iniciada') {
-          updatedGoal.status = 'em andamento'
-        }
+    const updatedGoal = { ...goal, current: newValue }
 
-        return updatedGoal
+    if (newValue >= goal.target && goal.status !== 'COMPLETED') {
+      updatedGoal.status = 'COMPLETED'
+      updatedGoal.completed = true
+    } else if (newValue > 0 && goal.status === 'ACTIVE') {
+      updatedGoal.status = 'ACTIVE'
+      updatedGoal.completed = false
+    }
+
+    try {
+      // Tentar atualizar na API
+      const response = await fetch('/api/goals', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updatedGoal),
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        setGoals(goals.map((g) => (g.id === goalId ? data.goal : g)))
+      } else {
+        // Fallback para localStorage se API falhar
+        const updatedGoals = goals.map((g) =>
+          g.id === goalId ? updatedGoal : g
+        )
+        setGoals(updatedGoals)
+        localStorage.setItem('care-ai-goals', JSON.stringify(updatedGoals))
       }
-      return goal
-    })
-    saveGoals(updatedGoals)
+    } catch (error) {
+      // Fallback para localStorage
+      const updatedGoals = goals.map((g) => (g.id === goalId ? updatedGoal : g))
+      setGoals(updatedGoals)
+      localStorage.setItem('care-ai-goals', JSON.stringify(updatedGoals))
+    }
   }
 
   const resetForm = () => {
@@ -295,10 +379,8 @@ export default function Goals() {
       title: '',
       description: '',
       category: 'Pessoal',
-      priority: 'média',
       targetValue: 0,
       currentValue: 0,
-      unit: '',
       deadline: '',
     })
   }
@@ -307,22 +389,22 @@ export default function Goals() {
     setSelectedGoal(goal)
     setFormData({
       title: goal.title,
-      description: goal.description,
+      description: goal.description || '',
       category: goal.category,
-      priority: goal.priority,
-      targetValue: goal.targetValue,
-      currentValue: goal.currentValue,
-      unit: goal.unit,
-      deadline: goal.deadline,
+      targetValue: goal.target,
+      currentValue: goal.current,
+      deadline: goal.deadline || '',
     })
     setIsEditModalOpen(true)
   }
 
-  const formatDate = (dateString: string) => {
+  const formatDate = (dateString: string | null) => {
+    if (!dateString) return 'Sem prazo'
     return new Date(dateString).toLocaleDateString('pt-BR')
   }
 
-  const getDaysUntilDeadline = (deadline: string) => {
+  const getDaysUntilDeadline = (deadline: string | null) => {
+    if (!deadline) return 0
     const today = new Date()
     const deadlineDate = new Date(deadline)
     const diffTime = deadlineDate.getTime() - today.getTime()
@@ -332,26 +414,23 @@ export default function Goals() {
 
   const getStatusIcon = (status: Goal['status']) => {
     switch (status) {
-      case 'concluída':
+      case 'COMPLETED':
         return <CheckCircleIcon className="w-5 h-5 text-green-400" />
-      case 'em andamento':
+      case 'ACTIVE':
         return <ClockIcon className="w-5 h-5 text-blue-400" />
-      case 'pausada':
+      case 'PAUSED':
         return <ClockIcon className="w-5 h-5 text-yellow-400" />
       default:
         return <FlagIcon className="w-5 h-5 text-white/60" />
     }
   }
 
-  const completedGoals = goals.filter((g) => g.status === 'concluída').length
-  const inProgressGoals = goals.filter(
-    (g) => g.status === 'em andamento'
-  ).length
+  const completedGoals = goals.filter((g) => g.status === 'COMPLETED').length
+  const inProgressGoals = goals.filter((g) => g.status === 'ACTIVE').length
   const averageProgress =
     goals.length > 0
       ? goals.reduce(
-          (acc, goal) =>
-            acc + calculateProgress(goal.currentValue, goal.targetValue),
+          (acc, goal) => acc + calculateProgress(goal.current, goal.target),
           0
         ) / goals.length
       : 0
@@ -448,10 +527,9 @@ export default function Goals() {
             className="input-dark"
           >
             <option value="all">Todos os status</option>
-            <option value="não iniciada">Não iniciada</option>
-            <option value="em andamento">Em andamento</option>
-            <option value="concluída">Concluída</option>
-            <option value="pausada">Pausada</option>
+            <option value="ACTIVE">Em andamento</option>
+            <option value="COMPLETED">Concluída</option>
+            <option value="PAUSED">Pausada</option>
           </select>
         </div>
       </div>
@@ -459,12 +537,8 @@ export default function Goals() {
       {/* Goals Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
         {filteredGoals.map((goal) => {
-          const progress = calculateProgress(
-            goal.currentValue,
-            goal.targetValue
-          )
+          const progress = calculateProgress(goal.current, goal.target)
           const daysUntilDeadline = getDaysUntilDeadline(goal.deadline)
-          const config = priorityConfig[goal.priority]
 
           return (
             <div
@@ -485,11 +559,6 @@ export default function Goals() {
                   <div className="flex items-center space-x-2 mb-3">
                     <span className="text-xs px-2 py-1 rounded-full bg-blue-500/20 text-blue-300 border border-blue-500/30">
                       {goal.category}
-                    </span>
-                    <span
-                      className={`text-xs px-2 py-1 rounded-full ${config.bg} ${config.color} border ${config.border}`}
-                    >
-                      {goal.priority}
                     </span>
                   </div>
                 </div>
@@ -514,7 +583,7 @@ export default function Goals() {
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-sm text-white/70">Progresso</span>
                   <span className="text-sm text-white font-medium">
-                    {goal.currentValue} / {goal.targetValue} {goal.unit}
+                    {goal.current} / {goal.target}
                   </span>
                 </div>
                 <div className="progress-bar">
@@ -529,7 +598,7 @@ export default function Goals() {
                   <span className="text-xs text-white/50">
                     {progress.toFixed(0)}%
                   </span>
-                  {goal.status === 'concluída' && (
+                  {goal.status === 'COMPLETED' && (
                     <div className="flex items-center space-x-1">
                       <StarSolidIcon className="w-4 h-4 text-yellow-400" />
                       <span className="text-xs text-yellow-400">
@@ -541,7 +610,7 @@ export default function Goals() {
               </div>
 
               {/* Quick Update */}
-              {goal.status !== 'concluída' && (
+              {goal.status !== 'COMPLETED' && (
                 <div className="mb-4">
                   <label className="block text-xs text-white/60 mb-1">
                     Atualizar progresso:
@@ -549,8 +618,8 @@ export default function Goals() {
                   <input
                     type="number"
                     min="0"
-                    max={goal.targetValue}
-                    value={goal.currentValue}
+                    max={goal.target}
+                    value={goal.current}
                     onChange={(e) =>
                       updateProgress(goal.id, Number(e.target.value))
                     }
@@ -677,27 +746,20 @@ export default function Goals() {
 
                 <div>
                   <label className="block text-white/80 text-sm font-medium mb-2">
-                    Prioridade
+                    Prazo
                   </label>
-                  <select
-                    value={formData.priority}
+                  <input
+                    type="date"
+                    value={formData.deadline}
                     onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        priority: e.target.value as Goal['priority'],
-                      })
+                      setFormData({ ...formData, deadline: e.target.value })
                     }
                     className="input-dark w-full"
-                  >
-                    <option value="baixa">Baixa</option>
-                    <option value="média">Média</option>
-                    <option value="alta">Alta</option>
-                    <option value="crítica">Crítica</option>
-                  </select>
+                  />
                 </div>
               </div>
 
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-white/80 text-sm font-medium mb-2">
                     Meta
@@ -735,35 +797,6 @@ export default function Goals() {
                     placeholder="0"
                   />
                 </div>
-
-                <div>
-                  <label className="block text-white/80 text-sm font-medium mb-2">
-                    Unidade
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.unit}
-                    onChange={(e) =>
-                      setFormData({ ...formData, unit: e.target.value })
-                    }
-                    className="input-dark w-full"
-                    placeholder="horas, livros, reais..."
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-white/80 text-sm font-medium mb-2">
-                  Prazo
-                </label>
-                <input
-                  type="date"
-                  value={formData.deadline}
-                  onChange={(e) =>
-                    setFormData({ ...formData, deadline: e.target.value })
-                  }
-                  className="input-dark w-full"
-                />
               </div>
             </div>
 
@@ -782,11 +815,7 @@ export default function Goals() {
               <button
                 onClick={isCreateModalOpen ? handleCreateGoal : handleEditGoal}
                 className="btn-primary"
-                disabled={
-                  !formData.title.trim() ||
-                  !formData.unit.trim() ||
-                  !formData.deadline
-                }
+                disabled={!formData.title.trim() || !formData.deadline}
               >
                 {isCreateModalOpen ? 'Criar Meta' : 'Salvar Alterações'}
               </button>

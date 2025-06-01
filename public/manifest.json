@@ -1,0 +1,20 @@
+{
+  "name": "CareAI - Assistente Pessoal Inteligente",
+  "short_name": "CareAI",
+  "description": "Gerencie sua rotina diária com inteligência artificial",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#1a1a1a",
+  "theme_color": "#3b82f6",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["productivity", "business", "utilities"],
+  "lang": "pt-BR"
+}

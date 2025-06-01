@@ -1,0 +1,12 @@
+# Groq API (100% GRATUITO!)
+GROQ_API_KEY=gsk_your_groq_api_key_here
+
+# Database
+DATABASE_URL="file:./dev.db"
+
+# Next.js
+NEXTAUTH_SECRET="your-secret-key"
+NEXTAUTH_URL="http://localhost:3001"
+
+# Opcional - só se quiser usar OpenAI
+OPENAI_API_KEY="sk-your-openai-key" 

@@ -9,6 +9,7 @@ import Tasks from '@/components/Tasks'
 import Notes from '@/components/Notes'
 import Goals from '@/components/Goals'
 import Calendar from '@/components/Calendar'
+import Events from '@/components/Events'
 import Settings from '@/components/Settings'
 import Profile from '@/components/Profile'
 
@@ -29,7 +30,7 @@ export default function Home() {
   const renderActiveView = () => {
     switch (activeView) {
       case 'dashboard':
-        return <Dashboard />
+        return <Dashboard setActiveView={setActiveView} />
       case 'chat':
         return <Chat />
       case 'tasks':
@@ -39,13 +40,13 @@ export default function Home() {
       case 'goals':
         return <Goals />
       case 'calendar':
-        return <Calendar />
+        return <Events />
       case 'settings':
         return <Settings />
       case 'profile':
         return <Profile />
       default:
-        return <Dashboard />
+        return <Dashboard setActiveView={setActiveView} />
     }
   }
 

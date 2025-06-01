@@ -1,0 +1,180 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String
+  avatar    String?
+  phone     String?
+  location  String?
+  position  String?
+  company   String?
+  bio       String?
+  joinDate  DateTime @default(now())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relationships
+  tasks         Task[]
+  notes         Note[]
+  goals         Goal[]
+  events        Event[]
+  chatSessions  ChatSession[]
+  achievements  UserAchievement[]
+  preferences   UserPreferences?
+
+  @@map("users")
+}
+
+model UserPreferences {
+  id                String  @id @default(cuid())
+  userId            String  @unique
+  theme             String  @default("dark")
+  language          String  @default("pt-BR")
+  emailNotifications Boolean @default(true)
+  pushNotifications Boolean @default(true)
+  soundNotifications Boolean @default(false)
+  analyticsEnabled   Boolean @default(true)
+  crashReportsEnabled Boolean @default(true)
+  dataCollectionEnabled Boolean @default(true)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_preferences")
+}
+
+model Task {
+  id          String    @id @default(cuid())
+  title       String
+  description String?
+  priority    String    @default("MEDIUM")
+  category    String    @default("Trabalho")
+  completed   Boolean   @default(false)
+  dueDate     DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  userId      String
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("tasks")
+}
+
+model Note {
+  id        String   @id @default(cuid())
+  title     String
+  content   String
+  category  String   @default("Geral")
+  tags      String   @default("")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  userId    String
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("notes")
+}
+
+model Goal {
+  id          String     @id @default(cuid())
+  title       String
+  description String?
+  target      Int
+  current     Int        @default(0)
+  category    String     @default("Pessoal")
+  status      String     @default("ACTIVE")
+  completed   Boolean    @default(false)
+  deadline    DateTime?
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  userId      String
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("goals")
+}
+
+model ChatSession {
+  id        String      @id @default(cuid())
+  title     String      @default("Nova Conversa")
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+  userId    String
+
+  user     User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messages ChatMessage[]
+
+  @@map("chat_sessions")
+}
+
+model ChatMessage {
+  id            String   @id @default(cuid())
+  content       String
+  role          String
+  timestamp     DateTime @default(now())
+  functionCalls String?
+  sessionId     String
+
+  chatSession ChatSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+
+  @@map("chat_messages")
+}
+
+model Achievement {
+  id          String @id @default(cuid())
+  title       String @unique
+  description String
+  icon        String
+  category    String
+  points      Int    @default(0)
+
+  userAchievements UserAchievement[]
+
+  @@map("achievements")
+}
+
+model UserAchievement {
+  id            String   @id @default(cuid())
+  userId        String
+  achievementId String
+  earnedAt      DateTime @default(now())
+
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  achievement Achievement @relation(fields: [achievementId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, achievementId])
+  @@map("user_achievements")
+}
+
+model Event {
+  id          String    @id @default(cuid())
+  title       String
+  description String?
+  location    String?
+  category    String    @default("Reunião")
+  startDate   DateTime
+  endDate     DateTime?
+  allDay      Boolean   @default(false)
+  priority    String    @default("MEDIUM")
+  status      String    @default("SCHEDULED") // SCHEDULED, CANCELLED, COMPLETED
+  reminder    String?   // "15min", "30min", "1hour", "1day"
+  attendees   String?   // JSON array of attendee emails/names
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  userId      String
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("events")
+} 

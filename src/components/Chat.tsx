@@ -1,297 +1,232 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
-import { store } from '@/lib/store'
-import { ChatMessage } from '@/types'
-import { formatTime } from '@/lib/utils'
-import { PaperAirplaneIcon, SparklesIcon } from '@heroicons/react/24/outline'
-import toast from 'react-hot-toast'
+import { useState, useRef, useEffect } from 'react'
+import {
+  IoSend,
+  IoSparkles,
+  IoCheckmarkCircle,
+  IoCloseCircle,
+} from 'react-icons/io5'
+
+interface Message {
+  id: string
+  role: 'user' | 'assistant'
+  content: string
+  timestamp: Date
+  actions?: Array<{
+    name: string
+    success: boolean
+    message: string
+  }>
+}
 
 export default function Chat() {
-  const [messages, setMessages] = useState<ChatMessage[]>([])
-  const [input, setInput] = useState('')
-  const [isTyping, setIsTyping] = useState(false)
+  const [messages, setMessages] = useState<Message[]>([
+    {
+      id: '1',
+      role: 'assistant',
+      content:
+        'Olá! 👋 Eu sou o CareAI, seu assistente inteligente. Posso ajudar você a:\n\n✅ **Criar tarefas** - "Preciso estudar Python"\n📝 **Fazer anotações** - "Anote que gostei do restaurante X"\n🎯 **Definir metas** - "Quero correr 5km por semana"\n📅 **Agendar compromissos** - "Marcar reunião amanhã às 14h"\n📋 **Organizar sua vida** - "Que tarefas tenho pendentes?"\n\nO que posso fazer por você hoje? 🚀',
+      timestamp: new Date(),
+    },
+  ])
+  const [inputValue, setInputValue] = useState('')
+  const [isLoading, setIsLoading] = useState(false)
+  const [sessionId] = useState(() => crypto.randomUUID())
   const messagesEndRef = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    loadMessages()
-  }, [])
-
-  useEffect(() => {
-    scrollToBottom()
-  }, [messages])
-
-  const loadMessages = () => {
-    const chatMessages = store.getChatMessages()
-    if (chatMessages.length === 0) {
-      // Adicionar mensagem de boas-vindas
-      const welcomeMessage = store.addChatMessage({
-        content:
-          'Olá! Eu sou o CareAI, seu assistente pessoal inteligente. Posso ajudá-lo a:\n\n✅ Criar e organizar tarefas\n📝 Adicionar notas importantes\n🎯 Definir e acompanhar metas\n📅 Agendar eventos\n📊 Analisar sua produtividade\n\nComo posso ajudá-lo hoje?',
-        type: 'assistant',
-      })
-      setMessages([welcomeMessage])
-    } else {
-      setMessages(chatMessages)
-    }
-  }
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }
 
-  const handleSendMessage = async () => {
-    if (!input.trim()) return
+  useEffect(() => {
+    scrollToBottom()
+  }, [messages])
 
-    // Adicionar mensagem do usuário
-    const userMessage = store.addChatMessage({
-      content: input,
-      type: 'user',
-    })
+  const sendMessage = async () => {
+    if (!inputValue.trim() || isLoading) return
+
+    const userMessage: Message = {
+      id: crypto.randomUUID(),
+      role: 'user',
+      content: inputValue,
+      timestamp: new Date(),
+    }
 
     setMessages((prev) => [...prev, userMessage])
-    const userInput = input
-    setInput('')
-    setIsTyping(true)
+    setInputValue('')
+    setIsLoading(true)
 
-    // Simular processamento do AI
-    setTimeout(() => {
-      const response = processAIResponse(userInput)
-      const aiMessage = store.addChatMessage({
-        content: response.content,
-        type: 'assistant',
-        context: response.context,
+    try {
+      const response = await fetch('/api/chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          message: inputValue,
+          sessionId,
+        }),
       })
 
-      setMessages((prev) => [...prev, aiMessage])
-      setIsTyping(false)
-
-      // Executar ação se necessário
-      if (response.context?.actionType) {
-        executeAction(response.context)
+      if (!response.ok) {
+        throw new Error('Falha na comunicação')
       }
-    }, 1500)
-  }
 
-  const processAIResponse = (
-    userInput: string
-  ): { content: string; context?: any } => {
-    const input = userInput.toLowerCase()
+      const data = await response.json()
 
-    // Criar tarefa
-    if (
-      input.includes('criar tarefa') ||
-      input.includes('nova tarefa') ||
-      input.includes('adicionar tarefa')
-    ) {
-      return {
+      const assistantMessage: Message = {
+        id: crypto.randomUUID(),
+        role: 'assistant',
+        content: data.message,
+        timestamp: new Date(),
+        actions: data.actionsExecuted > 0 ? data.functions : undefined,
+      }
+
+      setMessages((prev) => [...prev, assistantMessage])
+    } catch (error) {
+      const errorMessage: Message = {
+        id: crypto.randomUUID(),
+        role: 'assistant',
         content:
-          'Vou criar uma nova tarefa para você! Que tarefa gostaria de adicionar?',
-        context: {
-          actionType: 'create_task',
-          data: { pending: true },
-        },
+          '❌ Desculpe, houve um erro na comunicação. Tente novamente em alguns instantes.',
+        timestamp: new Date(),
       }
-    }
-
-    // Criar nota
-    if (
-      input.includes('criar nota') ||
-      input.includes('nova nota') ||
-      input.includes('anotar')
-    ) {
-      return {
-        content:
-          'Perfeito! Vou criar uma nota para você. Qual o conteúdo da nota?',
-        context: {
-          actionType: 'add_note',
-          data: { pending: true },
-        },
-      }
-    }
-
-    // Criar meta
-    if (
-      input.includes('criar meta') ||
-      input.includes('nova meta') ||
-      input.includes('objetivo')
-    ) {
-      return {
-        content:
-          'Excelente! Vou ajudá-lo a definir uma nova meta. Qual é seu objetivo?',
-        context: {
-          actionType: 'update_goal',
-          data: { pending: true },
-        },
-      }
-    }
-
-    // Agendar evento
-    if (
-      input.includes('agendar') ||
-      input.includes('evento') ||
-      input.includes('reunião')
-    ) {
-      return {
-        content:
-          'Vou agendar um evento para você! Quando e qual evento gostaria de agendar?',
-        context: {
-          actionType: 'schedule_event',
-          data: { pending: true },
-        },
-      }
-    }
-
-    // Status/Relatório
-    if (
-      input.includes('status') ||
-      input.includes('relatório') ||
-      input.includes('progresso')
-    ) {
-      const tasks = store.getTasks()
-      const goals = store.getGoals()
-      const completed = tasks.filter((t) => t.completed).length
-      const total = tasks.length
-      const activeGoals = goals.filter((g) => !g.completed).length
-
-      return {
-        content: `📊 **Relatório de Produtividade**\n\n✅ Tarefas: ${completed}/${total} concluídas\n🎯 Metas ativas: ${activeGoals}\n📈 Score de produtividade: ${
-          Math.round((completed / total) * 100) || 0
-        }%\n\nVocê está indo muito bem! Continue assim! 🚀`,
-      }
-    }
-
-    // Ajuda
-    if (
-      input.includes('ajuda') ||
-      input.includes('help') ||
-      input.includes('comandos')
-    ) {
-      return {
-        content:
-          '🤖 **Comandos que entendo:**\n\n• "Criar tarefa" - Adiciona nova tarefa\n• "Nova nota" - Cria uma anotação\n• "Criar meta" - Define um objetivo\n• "Agendar evento" - Marca um compromisso\n• "Status" - Mostra relatório de produtividade\n• "Ajuda" - Mostra esta lista\n\nTambém posso responder perguntas sobre produtividade e organização!',
-      }
-    }
-
-    // Saudações
-    if (
-      input.includes('olá') ||
-      input.includes('oi') ||
-      input.includes('hello')
-    ) {
-      return {
-        content:
-          'Olá! 👋 É ótimo falar com você! Como posso ajudá-lo a ser mais produtivo hoje?',
-      }
-    }
-
-    // Despedida
-    if (
-      input.includes('tchau') ||
-      input.includes('obrigado') ||
-      input.includes('valeu')
-    ) {
-      return {
-        content:
-          'Foi um prazer ajudá-lo! 😊 Estou sempre aqui quando precisar. Tenha um dia produtivo!',
-      }
-    }
-
-    // Resposta padrão inteligente
-    const responses = [
-      'Entendo! Posso ajudá-lo de várias formas. Que tal começarmos criando uma tarefa ou definindo uma meta?',
-      'Interessante! Para ser mais específico, posso ajudá-lo a organizar tarefas, criar notas, definir metas ou agendar eventos. O que prefere?',
-      'Perfeito! Sou especialista em produtividade. Posso criar tarefas, agendar eventos, fazer anotações ou acompanhar suas metas. Como posso ajudar?',
-      'Ótima pergunta! Como seu assistente pessoal, posso organizar sua rotina de várias formas. Que tipo de ajuda você precisa hoje?',
-    ]
-
-    return {
-      content: responses[Math.floor(Math.random() * responses.length)],
+      setMessages((prev) => [...prev, errorMessage])
+    } finally {
+      setIsLoading(false)
     }
   }
 
-  const executeAction = (context: any) => {
-    switch (context.actionType) {
-      case 'create_task':
-        toast.success(
-          'Funcionalidade em desenvolvimento! Em breve você poderá criar tarefas diretamente do chat.'
-        )
-        break
-      case 'add_note':
-        toast.success(
-          'Funcionalidade em desenvolvimento! Em breve você poderá criar notas diretamente do chat.'
-        )
-        break
-      case 'update_goal':
-        toast.success(
-          'Funcionalidade em desenvolvimento! Em breve você poderá criar metas diretamente do chat.'
-        )
-        break
-      case 'schedule_event':
-        toast.success(
-          'Funcionalidade em desenvolvimento! Em breve você poderá agendar eventos diretamente do chat.'
-        )
-        break
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault()
+      sendMessage()
     }
+  }
+
+  const ActionBadge = ({
+    action,
+  }: {
+    action: { name: string; success: boolean; message: string }
+  }) => {
+    const icons = {
+      create_task: '✅',
+      create_note: '📝',
+      create_goal: '🎯',
+      create_event: '📅',
+      list_tasks: '📋',
+      complete_task: '✔️',
+      update_goal_progress: '📊',
+    }
+
+    return (
+      <div
+        className={`inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium ${
+          action.success
+            ? 'bg-green-500/20 text-green-400 border border-green-500/30'
+            : 'bg-red-500/20 text-red-400 border border-red-500/30'
+        }`}
+      >
+        {action.success ? <IoCheckmarkCircle /> : <IoCloseCircle />}
+        <span>{icons[action.name as keyof typeof icons] || '⚡'}</span>
+        <span className="capitalize">{action.name.replace('_', ' ')}</span>
+      </div>
+    )
   }
 
   return (
-    <div className="flex flex-col h-full bg-gradient-main">
+    <div className="flex flex-col h-full bg-[#0f1419] text-white">
       {/* Header */}
-      <div className="glass-card p-6 m-6 mb-0 rounded-3xl">
-        <div className="flex items-center space-x-4">
-          <div className="w-12 h-12 rounded-2xl bg-gradient-accent flex items-center justify-center shadow-glow-blue">
-            <SparklesIcon className="w-6 h-6 text-white" />
+      <div className="p-4 border-b border-gray-800 bg-[#1a1f2e]">
+        <div className="flex items-center gap-3">
+          <div className="p-2 bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl">
+            <IoSparkles className="w-5 h-5" />
           </div>
           <div>
-            <h1 className="text-xl font-semibold text-white">
-              CareAI Assistant
-            </h1>
-            <p className="text-white/60 text-sm">
-              Seu assistente pessoal inteligente
-            </p>
+            <h1 className="text-lg font-semibold">CareAI</h1>
+            <p className="text-sm text-gray-400">Assistente Inteligente</p>
+          </div>
+          <div className="ml-auto">
+            <div className="flex items-center gap-2 text-xs text-green-400">
+              <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+              <span>Agente Ativo</span>
+            </div>
           </div>
         </div>
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-6 pt-4 space-y-4">
+      <div className="flex-1 overflow-y-auto p-4 space-y-4">
         {messages.map((message) => (
           <div
             key={message.id}
             className={`flex ${
-              message.type === 'user' ? 'justify-end' : 'justify-start'
+              message.role === 'user' ? 'justify-end' : 'justify-start'
             }`}
           >
             <div
-              className={
-                message.type === 'user'
-                  ? 'chat-message-user'
-                  : 'chat-message-ai'
-              }
+              className={`max-w-[80%] ${
+                message.role === 'user' ? 'order-2' : ''
+              }`}
             >
-              <div className="whitespace-pre-wrap">{message.content}</div>
-              <div className="text-xs mt-2 text-white/50">
-                {formatTime(message.timestamp)}
+              {message.role === 'assistant' && (
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="w-6 h-6 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
+                    <IoSparkles className="w-3 h-3" />
+                  </div>
+                  <span className="text-xs text-gray-400">CareAI</span>
+                </div>
+              )}
+
+              <div
+                className={`rounded-2xl px-4 py-3 ${
+                  message.role === 'user'
+                    ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white'
+                    : 'bg-[#1a1f2e] border border-gray-800'
+                }`}
+              >
+                <div className="whitespace-pre-wrap text-sm leading-relaxed">
+                  {message.content}
+                </div>
+
+                {/* Ações Executadas */}
+                {message.actions && message.actions.length > 0 && (
+                  <div className="mt-3 pt-3 border-t border-gray-700">
+                    <div className="text-xs text-gray-400 mb-2">
+                      🤖 Ações executadas:
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {message.actions.map((action, index) => (
+                        <ActionBadge key={index} action={action} />
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div className="text-xs text-gray-500 mt-1 px-2">
+                {message.timestamp.toLocaleTimeString('pt-BR', {
+                  hour: '2-digit',
+                  minute: '2-digit',
+                })}
               </div>
             </div>
           </div>
         ))}
 
-        {isTyping && (
+        {isLoading && (
           <div className="flex justify-start">
-            <div className="chat-message-ai">
-              <div className="loading-dots">
-                <div className="loading-dot"></div>
-                <div
-                  className="loading-dot"
-                  style={{ animationDelay: '0.2s' }}
-                ></div>
-                <div
-                  className="loading-dot"
-                  style={{ animationDelay: '0.4s' }}
-                ></div>
+            <div className="flex items-center gap-2 bg-[#1a1f2e] border border-gray-800 rounded-2xl px-4 py-3">
+              <div className="w-6 h-6 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
+                <IoSparkles className="w-3 h-3" />
               </div>
+              <div className="flex space-x-1">
+                <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce [animation-delay:-0.3s]"></div>
+                <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce [animation-delay:-0.15s]"></div>
+                <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce"></div>
+              </div>
+              <span className="text-xs text-gray-400">Processando...</span>
             </div>
           </div>
         )}
@@ -300,26 +235,52 @@ export default function Chat() {
       </div>
 
       {/* Input */}
-      <div className="p-6 pt-0">
-        <div className="glass-card p-4 rounded-2xl">
-          <div className="flex space-x-3">
-            <input
-              type="text"
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
-              placeholder="Digite sua mensagem..."
-              className="flex-1 bg-transparent text-white placeholder-white/50 border-none outline-none text-sm"
-              disabled={isTyping}
+      <div className="p-4 border-t border-gray-800 bg-[#1a1f2e]">
+        <div className="flex gap-3 items-end">
+          <div className="flex-1 relative">
+            <textarea
+              value={inputValue}
+              onChange={(e) => setInputValue(e.target.value)}
+              onKeyPress={handleKeyPress}
+              placeholder="Digite uma mensagem ou comando... (Ex: 'Crie uma tarefa para estudar React')"
+              className="w-full bg-[#0f1419] border border-gray-700 rounded-xl px-4 py-3 pr-12 text-white placeholder-gray-500 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[48px] max-h-32"
+              rows={1}
+              disabled={isLoading}
             />
-            <button
-              onClick={handleSendMessage}
-              disabled={!input.trim() || isTyping}
-              className="w-10 h-10 bg-gradient-accent rounded-xl flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 hover:scale-105 shadow-glow-blue"
-            >
-              <PaperAirplaneIcon className="w-5 h-5 text-white" />
-            </button>
+            {inputValue.length > 0 && (
+              <div className="absolute right-3 top-3">
+                <div className="text-xs text-gray-500">{inputValue.length}</div>
+              </div>
+            )}
           </div>
+          <button
+            onClick={sendMessage}
+            disabled={!inputValue.trim() || isLoading}
+            className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 disabled:from-gray-600 disabled:to-gray-700 disabled:cursor-not-allowed rounded-xl p-3 transition-all duration-200 transform hover:scale-105 disabled:scale-100"
+          >
+            <IoSend className="w-5 h-5" />
+          </button>
+        </div>
+
+        {/* Sugestões rápidas */}
+        <div className="mt-3 flex flex-wrap gap-2">
+          {[
+            '📋 Minhas tarefas',
+            '🎯 Criar meta',
+            '📝 Nova nota',
+            '✅ Marcar tarefa concluída',
+          ].map((suggestion) => (
+            <button
+              key={suggestion}
+              onClick={() =>
+                setInputValue(suggestion.split(' ').slice(1).join(' '))
+              }
+              className="text-xs bg-gray-800 hover:bg-gray-700 text-gray-300 px-3 py-1 rounded-lg transition-colors"
+              disabled={isLoading}
+            >
+              {suggestion}
+            </button>
+          ))}
         </div>
       </div>
     </div>

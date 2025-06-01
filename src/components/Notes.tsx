@@ -94,18 +94,38 @@ export default function Notes() {
   const [tagInput, setTagInput] = useState('')
 
   useEffect(() => {
-    const savedNotes = localStorage.getItem('care-ai-notes')
-    if (savedNotes) {
-      setNotes(JSON.parse(savedNotes))
-    } else {
-      setNotes(mockNotes)
-      localStorage.setItem('care-ai-notes', JSON.stringify(mockNotes))
-    }
+    loadNotes()
   }, [])
 
-  const saveNotes = (newNotes: Note[]) => {
-    setNotes(newNotes)
-    localStorage.setItem('care-ai-notes', JSON.stringify(newNotes))
+  const loadNotes = async () => {
+    try {
+      // Buscar notas da API do banco de dados
+      const response = await fetch('/api/notes?userId=user_1')
+      if (response.ok) {
+        const data = await response.json()
+        setNotes(data.notes || [])
+      } else {
+        console.error('Erro ao carregar notas:', response.statusText)
+        // Fallback para localStorage se API falhar
+        const savedNotes = localStorage.getItem('care-ai-notes')
+        if (savedNotes) {
+          setNotes(JSON.parse(savedNotes))
+        } else {
+          setNotes(mockNotes)
+          localStorage.setItem('care-ai-notes', JSON.stringify(mockNotes))
+        }
+      }
+    } catch (error) {
+      console.error('Erro ao carregar notas:', error)
+      // Fallback para localStorage
+      const savedNotes = localStorage.getItem('care-ai-notes')
+      if (savedNotes) {
+        setNotes(JSON.parse(savedNotes))
+      } else {
+        setNotes(mockNotes)
+        localStorage.setItem('care-ai-notes', JSON.stringify(mockNotes))
+      }
+    }
   }
 
   const filteredNotes = notes.filter((note) => {
@@ -122,11 +142,11 @@ export default function Notes() {
     return matchesSearch && matchesCategory
   })
 
-  const handleCreateNote = () => {
+  const handleCreateNote = async () => {
     if (!formData.title.trim()) return
 
     const newNote: Note = {
-      id: Date.now().toString(),
+      id: crypto.randomUUID(),
       title: formData.title,
       content: formData.content,
       category: formData.category,
@@ -136,44 +156,140 @@ export default function Notes() {
       updatedAt: new Date().toISOString(),
     }
 
-    const updatedNotes = [newNote, ...notes]
-    saveNotes(updatedNotes)
+    try {
+      // Tentar salvar na API
+      const response = await fetch('/api/notes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...newNote,
+          userId: 'user_1',
+        }),
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        setNotes([data.note, ...notes])
+      } else {
+        // Fallback para localStorage se API falhar
+        const updatedNotes = [newNote, ...notes]
+        setNotes(updatedNotes)
+        localStorage.setItem('care-ai-notes', JSON.stringify(updatedNotes))
+      }
+    } catch (error) {
+      // Fallback para localStorage
+      const updatedNotes = [newNote, ...notes]
+      setNotes(updatedNotes)
+      localStorage.setItem('care-ai-notes', JSON.stringify(updatedNotes))
+    }
+
     setIsCreateModalOpen(false)
     resetForm()
   }
 
-  const handleEditNote = () => {
+  const handleEditNote = async () => {
     if (!selectedNote || !formData.title.trim()) return
 
-    const updatedNotes = notes.map((note) =>
-      note.id === selectedNote.id
-        ? {
-            ...note,
-            title: formData.title,
-            content: formData.content,
-            category: formData.category,
-            tags: formData.tags,
-            updatedAt: new Date().toISOString(),
-          }
-        : note
-    )
+    const updatedNote = {
+      ...selectedNote,
+      title: formData.title,
+      content: formData.content,
+      category: formData.category,
+      tags: formData.tags,
+      updatedAt: new Date().toISOString(),
+    }
 
-    saveNotes(updatedNotes)
+    try {
+      // Tentar atualizar na API
+      const response = await fetch('/api/notes', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updatedNote),
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        setNotes(
+          notes.map((note) => (note.id === selectedNote.id ? data.note : note))
+        )
+      } else {
+        // Fallback para localStorage se API falhar
+        const updatedNotes = notes.map((note) =>
+          note.id === selectedNote.id ? updatedNote : note
+        )
+        setNotes(updatedNotes)
+        localStorage.setItem('care-ai-notes', JSON.stringify(updatedNotes))
+      }
+    } catch (error) {
+      // Fallback para localStorage
+      const updatedNotes = notes.map((note) =>
+        note.id === selectedNote.id ? updatedNote : note
+      )
+      setNotes(updatedNotes)
+      localStorage.setItem('care-ai-notes', JSON.stringify(updatedNotes))
+    }
+
     setIsEditModalOpen(false)
     setSelectedNote(null)
     resetForm()
   }
 
-  const handleDeleteNote = (noteId: string) => {
-    const updatedNotes = notes.filter((note) => note.id !== noteId)
-    saveNotes(updatedNotes)
+  const handleDeleteNote = async (noteId: string) => {
+    if (!confirm('Tem certeza que deseja excluir esta nota?')) return
+
+    try {
+      // Tentar deletar na API
+      const response = await fetch(`/api/notes?id=${noteId}`, {
+        method: 'DELETE',
+      })
+
+      if (response.ok) {
+        setNotes(notes.filter((note) => note.id !== noteId))
+      } else {
+        // Fallback para localStorage se API falhar
+        const updatedNotes = notes.filter((note) => note.id !== noteId)
+        setNotes(updatedNotes)
+        localStorage.setItem('care-ai-notes', JSON.stringify(updatedNotes))
+      }
+    } catch (error) {
+      // Fallback para localStorage
+      const updatedNotes = notes.filter((note) => note.id !== noteId)
+      setNotes(updatedNotes)
+      localStorage.setItem('care-ai-notes', JSON.stringify(updatedNotes))
+    }
   }
 
-  const toggleFavorite = (noteId: string) => {
-    const updatedNotes = notes.map((note) =>
-      note.id === noteId ? { ...note, isFavorite: !note.isFavorite } : note
-    )
-    saveNotes(updatedNotes)
+  const toggleFavorite = async (noteId: string) => {
+    const note = notes.find((n) => n.id === noteId)
+    if (!note) return
+
+    const updatedNote = { ...note, isFavorite: !note.isFavorite }
+
+    try {
+      // Tentar atualizar na API
+      const response = await fetch('/api/notes', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updatedNote),
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        setNotes(notes.map((n) => (n.id === noteId ? data.note : n)))
+      } else {
+        // Fallback para localStorage se API falhar
+        const updatedNotes = notes.map((n) =>
+          n.id === noteId ? updatedNote : n
+        )
+        setNotes(updatedNotes)
+        localStorage.setItem('care-ai-notes', JSON.stringify(updatedNotes))
+      }
+    } catch (error) {
+      // Fallback para localStorage
+      const updatedNotes = notes.map((n) => (n.id === noteId ? updatedNote : n))
+      setNotes(updatedNotes)
+      localStorage.setItem('care-ai-notes', JSON.stringify(updatedNotes))
+    }
   }
 
   const resetForm = () => {

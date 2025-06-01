@@ -22,16 +22,17 @@ interface Event {
   id: string
   title: string
   description: string
-  date: string
-  startTime: string
-  endTime: string
-  location?: string
+  location: string
   category: string
-  priority: 'baixa' | 'média' | 'alta' | 'crítica'
-  attendees?: string[]
-  reminder: boolean
-  reminderTime: number // minutes before event
+  startDate: string // Mudou de 'date' + 'startTime' para 'startDate' (ISO)
+  endDate: string | null // Mudou de 'endTime' para 'endDate' (ISO)
+  allDay: boolean
+  priority: string // Mudou para 'LOW', 'MEDIUM', 'HIGH', 'CRITICAL'
+  status: string
+  reminder: string | null // Mudou para string tipo '15min', '30min', etc
+  attendees: string | null // Mudou para string separada por vírgula
   createdAt: string
+  updatedAt: string
 }
 
 interface EventFormData {
@@ -42,7 +43,7 @@ interface EventFormData {
   endTime: string
   location: string
   category: string
-  priority: 'baixa' | 'média' | 'alta' | 'crítica'
+  priority: string // Mudou para string comum
   attendees: string[]
   reminder: boolean
   reminderTime: number
@@ -60,22 +61,22 @@ const categories = [
 ]
 
 const priorityConfig = {
-  baixa: {
+  LOW: {
     color: 'text-green-300',
     bg: 'bg-green-500/20',
     border: 'border-green-500/30',
   },
-  média: {
+  MEDIUM: {
     color: 'text-yellow-300',
     bg: 'bg-yellow-500/20',
     border: 'border-yellow-500/30',
   },
-  alta: {
+  HIGH: {
     color: 'text-orange-300',
     bg: 'bg-orange-500/20',
     border: 'border-orange-500/30',
   },
-  crítica: {
+  CRITICAL: {
     color: 'text-red-300',
     bg: 'bg-red-500/20',
     border: 'border-red-500/30',
@@ -98,43 +99,49 @@ const mockEvents: Event[] = [
     id: '1',
     title: 'Reunião de Planejamento',
     description: 'Reunião para definir metas do próximo trimestre',
-    date: '2024-01-25',
-    startTime: '09:00',
-    endTime: '10:30',
     location: 'Sala de Reuniões A',
     category: 'Trabalho',
-    priority: 'alta',
-    attendees: ['João', 'Maria', 'Pedro'],
-    reminder: true,
-    reminderTime: 15,
+    startDate: '2024-01-25T09:00:00',
+    endDate: '2024-01-25T10:30:00',
+    allDay: false,
+    priority: 'HIGH',
+    status: 'CONFIRMED',
+    reminder: '15min',
+    attendees: 'João,Maria,Pedro',
     createdAt: '2024-01-20T00:00:00Z',
+    updatedAt: '2024-01-20T00:00:00Z',
   },
   {
     id: '2',
     title: 'Consulta Médica',
     description: 'Check-up anual',
-    date: '2024-01-26',
-    startTime: '14:00',
-    endTime: '15:00',
     location: 'Clínica São Lucas',
     category: 'Saúde',
-    priority: 'média',
-    reminder: true,
-    reminderTime: 30,
+    startDate: '2024-01-26T14:00:00',
+    endDate: '2024-01-26T15:00:00',
+    allDay: false,
+    priority: 'MEDIUM',
+    status: 'CONFIRMED',
+    reminder: '30min',
+    attendees: null,
     createdAt: '2024-01-15T00:00:00Z',
+    updatedAt: '2024-01-15T00:00:00Z',
   },
   {
     id: '3',
     title: 'Aula de TypeScript',
     description: 'Curso online de TypeScript avançado',
-    date: '2024-01-27',
-    startTime: '19:00',
-    endTime: '21:00',
+    location: 'Online',
     category: 'Estudos',
-    priority: 'média',
-    reminder: true,
-    reminderTime: 10,
+    startDate: '2024-01-27T19:00:00',
+    endDate: '2024-01-27T21:00:00',
+    allDay: false,
+    priority: 'MEDIUM',
+    status: 'CONFIRMED',
+    reminder: '10min',
+    attendees: null,
     createdAt: '2024-01-18T00:00:00Z',
+    updatedAt: '2024-01-18T00:00:00Z',
   },
 ]
 
@@ -156,7 +163,7 @@ export default function Calendar() {
     endTime: '',
     location: '',
     category: 'Pessoal',
-    priority: 'média',
+    priority: 'MEDIUM',
     attendees: [],
     reminder: true,
     reminderTime: 15,
@@ -191,14 +198,14 @@ export default function Calendar() {
   }
 
   const getEventsForDate = (dateStr: string) => {
-    return events.filter((event) => event.date === dateStr)
+    return events.filter((event) => event.startDate.startsWith(dateStr))
   }
 
   const filteredEvents = events.filter((event) => {
     const matchesSearch =
       event.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
       event.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      event.location?.toLowerCase().includes(searchTerm.toLowerCase())
+      event.location.toLowerCase().includes(searchTerm.toLowerCase())
 
     const matchesCategory =
       selectedCategory === 'all' || event.category === selectedCategory
@@ -213,23 +220,24 @@ export default function Calendar() {
       id: Date.now().toString(),
       title: formData.title,
       description: formData.description,
-      date: formData.date,
-      startTime: formData.startTime,
-      endTime: formData.endTime,
       location: formData.location,
       category: formData.category,
+      startDate: formData.date + 'T' + formData.startTime,
+      endDate: formData.date + 'T' + formData.endTime,
+      allDay: false,
       priority: formData.priority,
-      attendees: formData.attendees,
-      reminder: formData.reminder,
-      reminderTime: formData.reminderTime,
+      status: 'CONFIRMED',
+      reminder: formData.reminder ? '15min' : null,
+      attendees: formData.attendees.join(','),
       createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
     }
 
     const updatedEvents = [...events, newEvent].sort((a, b) => {
-      if (a.date === b.date) {
-        return a.startTime.localeCompare(b.startTime)
+      if (a.startDate === b.startDate) {
+        return a.endDate?.localeCompare(b.endDate || '') || 0
       }
-      return a.date.localeCompare(b.date)
+      return a.startDate.localeCompare(b.startDate)
     })
 
     saveEvents(updatedEvents)
@@ -246,15 +254,15 @@ export default function Calendar() {
             ...event,
             title: formData.title,
             description: formData.description,
-            date: formData.date,
-            startTime: formData.startTime,
-            endTime: formData.endTime,
             location: formData.location,
             category: formData.category,
+            startDate: formData.date + 'T' + formData.startTime,
+            endDate: formData.date + 'T' + formData.endTime,
             priority: formData.priority,
-            attendees: formData.attendees,
-            reminder: formData.reminder,
-            reminderTime: formData.reminderTime,
+            status: 'CONFIRMED',
+            reminder: formData.reminder ? '15min' : null,
+            attendees: formData.attendees.join(','),
+            updatedAt: new Date().toISOString(),
           }
         : event
     )
@@ -279,7 +287,7 @@ export default function Calendar() {
       endTime: '',
       location: '',
       category: 'Pessoal',
-      priority: 'média',
+      priority: 'MEDIUM',
       attendees: [],
       reminder: true,
       reminderTime: 15,
@@ -292,15 +300,15 @@ export default function Calendar() {
     setFormData({
       title: event.title,
       description: event.description,
-      date: event.date,
-      startTime: event.startTime,
-      endTime: event.endTime,
-      location: event.location || '',
+      date: event.startDate.split('T')[0],
+      startTime: event.startDate.split('T')[1]?.substring(0, 5) || '',
+      endTime: event.endDate?.split('T')[1]?.substring(0, 5) || '',
+      location: event.location,
       category: event.category,
       priority: event.priority,
-      attendees: event.attendees || [],
-      reminder: event.reminder,
-      reminderTime: event.reminderTime,
+      attendees: event.attendees?.split(',') || [],
+      reminder: event.reminder !== null,
+      reminderTime: 15,
     })
     setIsEditModalOpen(true)
   }
@@ -405,18 +413,48 @@ export default function Calendar() {
   }
 
   const upcomingEvents = events
-    .filter((event) => new Date(event.date) >= new Date())
+    .filter((event) => new Date(event.startDate) >= new Date())
     .sort((a, b) => {
-      if (a.date === b.date) {
-        return a.startTime.localeCompare(b.startTime)
+      if (a.startDate === b.startDate) {
+        return a.endDate?.localeCompare(b.endDate || '') || 0
       }
-      return a.date.localeCompare(b.date)
+      return a.startDate.localeCompare(b.startDate)
     })
     .slice(0, 5)
 
   const todayEvents = events.filter(
-    (event) => event.date === formatDate(new Date())
+    (event) => event.startDate.split('T')[0] === formatDate(new Date())
   )
+
+  const loadEvents = async () => {
+    try {
+      const response = await fetch('/api/events?userId=user_1')
+      if (response.ok) {
+        const data = await response.json()
+        setEvents(data.events || [])
+      } else {
+        console.error('Erro ao carregar eventos:', response.statusText)
+        // Fallback para localStorage se API falhar
+        const savedEvents = localStorage.getItem('care-ai-events')
+        if (savedEvents) {
+          setEvents(JSON.parse(savedEvents))
+        } else {
+          setEvents(mockEvents)
+          localStorage.setItem('care-ai-events', JSON.stringify(mockEvents))
+        }
+      }
+    } catch (error) {
+      console.error('Erro ao carregar eventos:', error)
+      // Fallback para localStorage
+      const savedEvents = localStorage.getItem('care-ai-events')
+      if (savedEvents) {
+        setEvents(JSON.parse(savedEvents))
+      } else {
+        setEvents(mockEvents)
+        localStorage.setItem('care-ai-events', JSON.stringify(mockEvents))
+      }
+    }
+  }
 
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
@@ -497,7 +535,7 @@ export default function Calendar() {
             <div>
               <p className="text-white/60 text-sm">Com Lembrete</p>
               <p className="text-2xl font-bold text-white">
-                {events.filter((e) => e.reminder).length}
+                {events.filter((e) => e.reminder !== null).length}
               </p>
             </div>
             <BellIcon className="w-8 h-8 text-purple-400" />
@@ -653,7 +691,8 @@ export default function Calendar() {
         /* List View */
         <div className="space-y-4">
           {filteredEvents.map((event) => {
-            const config = priorityConfig[event.priority]
+            const config =
+              priorityConfig[event.priority as keyof typeof priorityConfig]
             return (
               <div key={event.id} className="dark-card p-6 rounded-3xl">
                 <div className="flex items-start justify-between mb-4">
@@ -686,7 +725,9 @@ export default function Calendar() {
                       <div className="flex items-center space-x-1">
                         <CalendarIcon className="w-4 h-4" />
                         <span>
-                          {new Date(event.date).toLocaleDateString('pt-BR')}
+                          {new Date(event.startDate).toLocaleDateString(
+                            'pt-BR'
+                          )}
                         </span>
                       </div>
                       <div className="flex items-center space-x-1">

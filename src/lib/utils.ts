@@ -105,6 +105,15 @@ export function getRelativeTime(date: Date | string | number): string {
 
 export function getPriorityColor(priority: string): string {
   switch (priority) {
+    case 'CRITICAL':
+      return 'priority-critical'
+    case 'HIGH':
+      return 'priority-high'
+    case 'MEDIUM':
+      return 'priority-medium'
+    case 'LOW':
+      return 'priority-low'
+    // Mantém compatibilidade com valores antigos
     case 'crítica':
       return 'priority-critical'
     case 'alta':
@@ -127,6 +136,15 @@ export function getProgressColor(progress: number): string {
 
 export function getPriorityIcon(priority: string): string {
   switch (priority) {
+    case 'CRITICAL':
+      return '🔴'
+    case 'HIGH':
+      return '🟠'
+    case 'MEDIUM':
+      return '🟡'
+    case 'LOW':
+      return '🟢'
+    // Mantém compatibilidade com valores antigos
     case 'crítica':
       return '🔴'
     case 'alta':
