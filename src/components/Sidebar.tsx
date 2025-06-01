@@ -22,6 +22,8 @@ type ActiveView =
   | 'notes'
   | 'goals'
   | 'calendar'
+  | 'settings'
+  | 'profile'
 
 interface SidebarProps {
   activeView: ActiveView
@@ -102,6 +104,11 @@ export default function Sidebar({
     setIsOpen(!isOpen)
   }
 
+  // No mobile, só renderiza a sidebar se estiver aberta
+  if (isMobile && !isOpen) {
+    return null
+  }
+
   // Overlay para mobile
   if (isMobile && isOpen) {
     return (
@@ -121,7 +128,7 @@ export default function Sidebar({
                 <div className="w-10 h-10 rounded-2xl bg-gradient-accent flex items-center justify-center shadow-glow-blue">
                   <SparklesIcon className="w-6 h-6 text-white" />
                 </div>
-                <div>
+                <div className="text-left">
                   <span className="text-xl font-bold text-white">CareAI</span>
                   <p className="text-xs text-white/60">Personal Assistant</p>
                 </div>
@@ -140,7 +147,7 @@ export default function Sidebar({
               {/* Main Section */}
               <div className="space-y-2">
                 <div className="px-2 mb-4">
-                  <h3 className="text-xs font-semibold text-white/60 uppercase tracking-wider">
+                  <h3 className="text-xs font-semibold text-white/60 uppercase tracking-wider text-left">
                     Principal
                   </h3>
                 </div>
@@ -157,11 +164,11 @@ export default function Sidebar({
                       }`}
                     >
                       <item.icon className="w-6 h-6 flex-shrink-0" />
-                      <div className="min-w-0">
-                        <span className="font-medium block truncate">
+                      <div className="min-w-0 text-left">
+                        <span className="font-medium block truncate text-left">
                           {item.name}
                         </span>
-                        <span className="text-xs text-white/50 block truncate">
+                        <span className="text-xs text-white/50 block truncate text-left">
                           {item.description}
                         </span>
                       </div>
@@ -176,7 +183,7 @@ export default function Sidebar({
               {/* Work Section */}
               <div className="space-y-2">
                 <div className="px-2 mb-4">
-                  <h3 className="text-xs font-semibold text-white/60 uppercase tracking-wider">
+                  <h3 className="text-xs font-semibold text-white/60 uppercase tracking-wider text-left">
                     Produtividade
                   </h3>
                 </div>
@@ -193,11 +200,11 @@ export default function Sidebar({
                       }`}
                     >
                       <item.icon className="w-6 h-6 flex-shrink-0" />
-                      <div className="min-w-0">
-                        <span className="font-medium block truncate">
+                      <div className="min-w-0 text-left">
+                        <span className="font-medium block truncate text-left">
                           {item.name}
                         </span>
-                        <span className="text-xs text-white/50 block truncate">
+                        <span className="text-xs text-white/50 block truncate text-left">
                           {item.description}
                         </span>
                       </div>
@@ -209,22 +216,38 @@ export default function Sidebar({
 
             {/* Footer */}
             <div className="border-t border-white/10 p-4 space-y-2">
-              <button className="w-full flex items-center px-4 py-3 space-x-3 rounded-2xl text-white/70 hover:text-white hover:glass-hover transition-all duration-200">
+              <button
+                onClick={() => handleItemClick('settings')}
+                className={`w-full flex items-center px-4 py-3 space-x-3 rounded-2xl transition-all duration-200 ${
+                  activeView === 'settings'
+                    ? 'glass-active text-white shadow-glow-blue'
+                    : 'text-white/70 hover:text-white hover:glass-hover'
+                }`}
+              >
                 <CogIcon className="w-6 h-6 flex-shrink-0" />
-                <div className="min-w-0">
-                  <span className="font-medium block truncate">
+                <div className="min-w-0 text-left">
+                  <span className="font-medium block truncate text-left">
                     Configurações
                   </span>
-                  <span className="text-xs text-white/50 block truncate">
+                  <span className="text-xs text-white/50 block truncate text-left">
                     Personalizar aplicativo
                   </span>
                 </div>
               </button>
-              <button className="w-full flex items-center px-4 py-3 space-x-3 rounded-2xl text-white/70 hover:text-white hover:glass-hover transition-all duration-200">
+              <button
+                onClick={() => handleItemClick('profile')}
+                className={`w-full flex items-center px-4 py-3 space-x-3 rounded-2xl transition-all duration-200 ${
+                  activeView === 'profile'
+                    ? 'glass-active text-white shadow-glow-blue'
+                    : 'text-white/70 hover:text-white hover:glass-hover'
+                }`}
+              >
                 <UserCircleIcon className="w-6 h-6 flex-shrink-0" />
-                <div className="min-w-0">
-                  <span className="font-medium block truncate">Perfil</span>
-                  <span className="text-xs text-white/50 block truncate">
+                <div className="min-w-0 text-left">
+                  <span className="font-medium block truncate text-left">
+                    Perfil
+                  </span>
+                  <span className="text-xs text-white/50 block truncate text-left">
                     Gerenciar conta
                   </span>
                 </div>
@@ -255,28 +278,21 @@ export default function Sidebar({
               <div className="w-10 h-10 rounded-2xl bg-gradient-accent flex items-center justify-center shadow-glow-blue flex-shrink-0">
                 <SparklesIcon className="w-6 h-6 text-white" />
               </div>
-              <div className="min-w-0">
-                <span className="text-xl font-bold text-white block truncate">
+              <div className="min-w-0 text-left">
+                <span className="text-xl font-bold text-white block truncate text-left">
                   CareAI
                 </span>
-                <p className="text-xs text-white/60 truncate">
+                <p className="text-xs text-white/60 truncate text-left">
                   Personal Assistant
                 </p>
               </div>
             </div>
           )}
           {!isOpen && (
-            <div className="flex flex-col items-center space-y-2 pt-8">
+            <div className="flex items-center justify-center">
               <div className="w-10 h-10 rounded-2xl bg-gradient-accent flex items-center justify-center shadow-glow-blue">
                 <SparklesIcon className="w-6 h-6 text-white" />
               </div>
-              <button
-                onClick={handleToggle}
-                className="w-10 h-10 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-white hover:bg-white/10 transition-all duration-300"
-                aria-label="Abrir menu"
-              >
-                <Bars3Icon className="w-5 h-5" />
-              </button>
             </div>
           )}
           {isOpen && (
@@ -296,11 +312,24 @@ export default function Sidebar({
             isOpen ? 'px-4' : 'px-2'
           }`}
         >
+          {/* Botão hambúrguer quando fechado - posicionado no topo da navegação */}
+          {!isOpen && (
+            <div className="flex justify-center mb-4">
+              <button
+                onClick={handleToggle}
+                className="w-10 h-10 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-white hover:bg-white/10 transition-all duration-300"
+                aria-label="Abrir menu"
+              >
+                <Bars3Icon className="w-5 h-5" />
+              </button>
+            </div>
+          )}
+
           {/* Main Section */}
           <div className="space-y-2">
             {isOpen && (
               <div className="px-2 mb-4">
-                <h3 className="text-xs font-semibold text-white/60 uppercase tracking-wider">
+                <h3 className="text-xs font-semibold text-white/60 uppercase tracking-wider text-left">
                   Principal
                 </h3>
               </div>
@@ -325,11 +354,11 @@ export default function Sidebar({
                     }`}
                   />
                   {isOpen && (
-                    <div className="min-w-0">
-                      <span className="font-medium block truncate">
+                    <div className="min-w-0 text-left">
+                      <span className="font-medium block truncate text-left">
                         {item.name}
                       </span>
-                      <span className="text-xs text-white/50 block truncate">
+                      <span className="text-xs text-white/50 block truncate text-left">
                         {item.description}
                       </span>
                     </div>
@@ -341,12 +370,13 @@ export default function Sidebar({
 
           {/* Divider */}
           {isOpen && <div className="border-t border-white/10 mx-2" />}
+          {!isOpen && <div className="border-t border-white/10 mx-2" />}
 
           {/* Work Section */}
           <div className="space-y-2">
             {isOpen && (
               <div className="px-2 mb-4">
-                <h3 className="text-xs font-semibold text-white/60 uppercase tracking-wider">
+                <h3 className="text-xs font-semibold text-white/60 uppercase tracking-wider text-left">
                   Produtividade
                 </h3>
               </div>
@@ -371,11 +401,11 @@ export default function Sidebar({
                     }`}
                   />
                   {isOpen && (
-                    <div className="min-w-0">
-                      <span className="font-medium block truncate">
+                    <div className="min-w-0 text-left">
+                      <span className="font-medium block truncate text-left">
                         {item.name}
                       </span>
-                      <span className="text-xs text-white/50 block truncate">
+                      <span className="text-xs text-white/50 block truncate text-left">
                         {item.description}
                       </span>
                     </div>
@@ -393,36 +423,48 @@ export default function Sidebar({
           }`}
         >
           <button
-            className={`w-full flex items-center transition-all duration-200 rounded-2xl text-white/70 hover:text-white hover:glass-hover ${
+            onClick={() => handleItemClick('settings')}
+            className={`w-full flex items-center transition-all duration-200 rounded-2xl ${
               isOpen ? 'px-4 py-3 space-x-3' : 'px-2 py-3 justify-center'
+            } ${
+              activeView === 'settings'
+                ? 'glass-active text-white shadow-glow-blue'
+                : 'text-white/70 hover:text-white hover:glass-hover'
             }`}
           >
             <CogIcon
               className={`flex-shrink-0 ${isOpen ? 'w-6 h-6' : 'w-7 h-7'}`}
             />
             {isOpen && (
-              <div className="min-w-0">
-                <span className="font-medium block truncate">
+              <div className="min-w-0 text-left">
+                <span className="font-medium block truncate text-left">
                   Configurações
                 </span>
-                <span className="text-xs text-white/50 block truncate">
+                <span className="text-xs text-white/50 block truncate text-left">
                   Personalizar aplicativo
                 </span>
               </div>
             )}
           </button>
           <button
-            className={`w-full flex items-center transition-all duration-200 rounded-2xl text-white/70 hover:text-white hover:glass-hover ${
+            onClick={() => handleItemClick('profile')}
+            className={`w-full flex items-center transition-all duration-200 rounded-2xl ${
               isOpen ? 'px-4 py-3 space-x-3' : 'px-2 py-3 justify-center'
+            } ${
+              activeView === 'profile'
+                ? 'glass-active text-white shadow-glow-blue'
+                : 'text-white/70 hover:text-white hover:glass-hover'
             }`}
           >
             <UserCircleIcon
               className={`flex-shrink-0 ${isOpen ? 'w-6 h-6' : 'w-7 h-7'}`}
             />
             {isOpen && (
-              <div className="min-w-0">
-                <span className="font-medium block truncate">Perfil</span>
-                <span className="text-xs text-white/50 block truncate">
+              <div className="min-w-0 text-left">
+                <span className="font-medium block truncate text-left">
+                  Perfil
+                </span>
+                <span className="text-xs text-white/50 block truncate text-left">
                   Gerenciar conta
                 </span>
               </div>

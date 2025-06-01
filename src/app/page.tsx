@@ -9,6 +9,8 @@ import Tasks from '@/components/Tasks'
 import Notes from '@/components/Notes'
 import Goals from '@/components/Goals'
 import Calendar from '@/components/Calendar'
+import Settings from '@/components/Settings'
+import Profile from '@/components/Profile'
 
 type ActiveView =
   | 'dashboard'
@@ -17,6 +19,8 @@ type ActiveView =
   | 'notes'
   | 'goals'
   | 'calendar'
+  | 'settings'
+  | 'profile'
 
 export default function Home() {
   const [activeView, setActiveView] = useState<ActiveView>('dashboard')
@@ -36,6 +40,10 @@ export default function Home() {
         return <Goals />
       case 'calendar':
         return <Calendar />
+      case 'settings':
+        return <Settings />
+      case 'profile':
+        return <Profile />
       default:
         return <Dashboard />
     }
@@ -55,6 +63,10 @@ export default function Home() {
         return 'Metas'
       case 'calendar':
         return 'Agenda'
+      case 'settings':
+        return 'Configurações'
+      case 'profile':
+        return 'Perfil'
       default:
         return 'Dashboard'
     }
@@ -84,8 +96,8 @@ export default function Home() {
 
       <main
         className={`flex-1 transition-all duration-300 ease-in-out ${
-          // Mobile: sem margem lateral, apenas padding top
-          'mt-20 md:mt-0'
+          // Mobile: padding top para o header mobile, sem margem lateral
+          'pt-20 md:pt-0'
         } ${
           // Desktop: margem lateral baseada no estado da sidebar
           sidebarOpen ? 'md:ml-72' : 'md:ml-20'
