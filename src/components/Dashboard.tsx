@@ -5,107 +5,32 @@ import { Task, Goal, Note, DashboardStats } from '@/types'
 import { formatDate, calculateProductivityScore } from '@/lib/utils'
 import {
   CalendarIcon,
-  ClockIcon,
-  TrophyIcon,
-  DocumentTextIcon,
-  PlusIcon,
-  ArrowTrendingUpIcon,
-  UserIcon,
-  BellIcon,
-  Squares2X2Icon,
   CheckCircleIcon,
+  DocumentTextIcon,
+  TrophyIcon,
+  ClockIcon,
   FireIcon,
-  ChartBarIcon,
   SparklesIcon,
+  BellIcon,
+  CogIcon,
+  EyeIcon,
+  EyeSlashIcon,
   XMarkIcon,
+  AdjustmentsHorizontalIcon,
+  ArrowPathIcon,
+  PlusIcon,
+  ChevronRightIcon,
+  ExclamationTriangleIcon,
+  UserIcon,
+  Squares2X2Icon,
+  ArrowTrendingUpIcon,
+  CurrencyDollarIcon,
+  WalletIcon,
+  BuildingLibraryIcon,
+  BanknotesIcon,
+  ChartBarIcon,
 } from '@heroicons/react/24/outline'
 import { BellIcon as BellSolidIcon } from '@heroicons/react/24/solid'
-
-// Mock data como fallback
-const mockTasks: Task[] = [
-  {
-    id: '1',
-    title: 'Revisar relatório mensal',
-    description: 'Revisar e finalizar o relatório de vendas do mês',
-    completed: false,
-    priority: 'alta',
-    category: 'Trabalho',
-    dueDate: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000),
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-  {
-    id: '2',
-    title: 'Exercitar-se',
-    description: 'Fazer 30 minutos de exercício',
-    completed: true,
-    priority: 'média',
-    category: 'Saúde',
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-  {
-    id: '3',
-    title: 'Estudar React',
-    description: 'Completar módulo avançado',
-    completed: false,
-    priority: 'alta',
-    category: 'Estudos',
-    dueDate: new Date(Date.now() + 1 * 24 * 60 * 60 * 1000),
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-]
-
-const mockNotes: Note[] = [
-  {
-    id: '1',
-    title: 'Ideias para novo projeto',
-    content: 'Desenvolver um aplicativo de gestão de tempo com IA integrada...',
-    category: 'Ideias',
-    tags: ['projeto', 'ia', 'produtividade'],
-    pinned: true,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-  {
-    id: '2',
-    title: 'Notas da reunião',
-    content: 'Discutir objetivos do próximo trimestre...',
-    category: 'Reuniões',
-    tags: ['trabalho', 'metas'],
-    pinned: false,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-]
-
-const mockGoals: Goal[] = [
-  {
-    id: '1',
-    title: 'Aprender TypeScript',
-    description: 'Dominar TypeScript para desenvolvimento web moderno',
-    category: 'Estudos',
-    targetDate: new Date('2024-03-31'),
-    progress: 75,
-    milestones: [],
-    completed: false,
-    createdAt: new Date('2024-01-01T00:00:00Z'),
-    updatedAt: new Date('2024-01-01T00:00:00Z'),
-  },
-  {
-    id: '2',
-    title: 'Exercitar-se 5x por semana',
-    description: 'Manter consistência nos exercícios físicos',
-    category: 'Saúde',
-    targetDate: new Date('2024-06-30'),
-    progress: 60,
-    milestones: [],
-    completed: false,
-    createdAt: new Date('2024-01-15T00:00:00Z'),
-    updatedAt: new Date('2024-01-15T00:00:00Z'),
-  },
-]
 
 // Interface Event para dashboard (compatível com API)
 interface Event {
@@ -125,41 +50,6 @@ interface Event {
   updatedAt: string
 }
 
-const mockEvents: Event[] = [
-  {
-    id: '1',
-    title: 'Reunião de Planejamento',
-    description: 'Revisar objetivos e metas do trimestre',
-    location: 'Sala de Reuniões A',
-    category: 'Reunião',
-    startDate: '2025-01-15T09:00:00',
-    endDate: '2025-01-15T10:30:00',
-    allDay: false,
-    priority: 'HIGH',
-    status: 'SCHEDULED',
-    reminder: '15min',
-    attendees: 'João, Maria, Pedro',
-    createdAt: '2025-01-10T00:00:00Z',
-    updatedAt: '2025-01-10T00:00:00Z',
-  },
-  {
-    id: '2',
-    title: 'Consulta Médica',
-    description: 'Check-up de rotina',
-    location: 'Clínica São José',
-    category: 'Consulta',
-    startDate: '2025-01-20T14:00:00',
-    endDate: '2025-01-20T15:00:00',
-    allDay: false,
-    priority: 'MEDIUM',
-    status: 'SCHEDULED',
-    reminder: '1hour',
-    attendees: null,
-    createdAt: '2025-01-18T00:00:00Z',
-    updatedAt: '2025-01-18T00:00:00Z',
-  },
-]
-
 // Interface para notificações
 interface Notification {
   id: string
@@ -172,6 +62,23 @@ interface Notification {
   dismissed: boolean
 }
 
+// Interfaces financeiras para o dashboard
+interface FinancialSummary {
+  totalAssets: number
+  monthlyIncome: number
+  monthlyExpenses: number
+  monthlyNet: number
+  savingsRate: number
+  recentTransactions: Array<{
+    id: string
+    title: string
+    amount: number
+    type: 'INCOME' | 'EXPENSE'
+    category: string
+    date: string
+  }>
+}
+
 type ActiveView =
   | 'dashboard'
   | 'chat'
@@ -179,6 +86,7 @@ type ActiveView =
   | 'notes'
   | 'goals'
   | 'calendar'
+  | 'finances'
   | 'settings'
   | 'profile'
 
@@ -200,6 +108,8 @@ export default function Dashboard({ setActiveView }: DashboardProps) {
   const [notes, setNotes] = useState<Note[]>([])
   const [goals, setGoals] = useState<Goal[]>([])
   const [events, setEvents] = useState<Event[]>([])
+  const [financialSummary, setFinancialSummary] =
+    useState<FinancialSummary | null>(null)
   const [currentTime, setCurrentTime] = useState(new Date())
   const [isLoading, setIsLoading] = useState(true)
 
@@ -218,6 +128,7 @@ export default function Dashboard({ setActiveView }: DashboardProps) {
     showTodayTasks: true,
     showGoalsProgress: true,
     showUpcomingEvents: true,
+    showFinancialSummary: true,
     density: 'normal', // 'compact', 'normal', 'spacious'
   })
 
@@ -246,151 +157,221 @@ export default function Dashboard({ setActiveView }: DashboardProps) {
   }, [events])
 
   const loadAllData = async () => {
-    console.log('🚀 Dashboard: Carregando todos os dados...')
     setIsLoading(true)
-
     try {
-      // Carregar dados mock primeiro (garantir que algo apareça)
-      console.log('📦 Dashboard: Carregando dados mock...')
-      setTasks(mockTasks)
-      setNotes(mockNotes)
-      setGoals(mockGoals)
-      setEvents(mockEvents)
-      calculateStats(mockTasks, mockNotes, mockGoals, mockEvents)
-      console.log('✅ Dashboard: Dados mock carregados')
-
-      // Tentar carregar da API sequencialmente para evitar sobrecarga
-      console.log('🌐 Dashboard: Iniciando carregamento da API...')
-      await loadTasks()
-      await loadNotes()
-      await loadGoals()
-      await loadEvents()
-      console.log('✅ Dashboard: Carregamento da API concluído')
+      await Promise.all([
+        loadTasks(),
+        loadNotes(),
+        loadGoals(),
+        loadEvents(),
+        loadFinancialSummary(),
+      ])
     } catch (error) {
-      console.error('❌ Erro ao carregar dados do dashboard:', error)
+      console.error('Erro ao carregar dados:', error)
     } finally {
-      console.log('🏁 Dashboard: Finalizando carregamento')
       setIsLoading(false)
     }
   }
 
   const loadTasks = async () => {
     try {
-      console.log('📋 Carregando tarefas...')
-      const controller = new AbortController()
-      const timeoutId = setTimeout(() => controller.abort(), 5000) // 5 segundos timeout
-
-      const response = await fetch('/api/tasks?userId=user_1', {
-        signal: controller.signal,
-      })
-      clearTimeout(timeoutId)
-
+      const response = await fetch('/api/tasks?userId=user_1')
       if (response.ok) {
-        const data = await response.json()
-        console.log('✅ Tarefas da API:', data.tasks?.length || 0)
-        if (data.tasks && data.tasks.length > 0) {
-          setTasks(data.tasks)
-        }
+        const result = await response.json()
+        setTasks(result.tasks || [])
       } else {
-        console.log('⚠️ API tasks response não OK:', response.status)
+        console.error('Erro ao carregar tarefas:', response.statusText)
+        setTasks([])
       }
     } catch (error) {
-      if (error.name === 'AbortError') {
-        console.log('⏰ Timeout na requisição de tarefas')
-      } else {
-        console.log('⚠️ Erro ao carregar tarefas:', error.message)
-      }
-      console.log('⚠️ Usando tarefas mock')
+      console.error(
+        'Erro ao carregar tarefas:',
+        error instanceof Error ? error.message : 'Erro desconhecido'
+      )
+      setTasks([])
     }
   }
 
   const loadNotes = async () => {
     try {
-      console.log('📝 Carregando notas...')
-      const controller = new AbortController()
-      const timeoutId = setTimeout(() => controller.abort(), 5000)
-
-      const response = await fetch('/api/notes?userId=user_1', {
-        signal: controller.signal,
-      })
-      clearTimeout(timeoutId)
-
+      const response = await fetch('/api/notes?userId=user_1')
       if (response.ok) {
-        const data = await response.json()
-        console.log('✅ Notas da API:', data.notes?.length || 0)
-        if (data.notes && data.notes.length > 0) {
-          setNotes(data.notes)
-        }
+        const result = await response.json()
+        setNotes(result.notes || [])
       } else {
-        console.log('⚠️ API notes response não OK:', response.status)
+        console.error('Erro ao carregar notas:', response.statusText)
+        setNotes([])
       }
     } catch (error) {
-      if (error.name === 'AbortError') {
-        console.log('⏰ Timeout na requisição de notas')
-      } else {
-        console.log('⚠️ Erro ao carregar notas:', error.message)
-      }
-      console.log('⚠️ Usando notas mock')
+      console.error(
+        'Erro ao carregar notas:',
+        error instanceof Error ? error.message : 'Erro desconhecido'
+      )
+      setNotes([])
     }
   }
 
   const loadGoals = async () => {
     try {
-      console.log('🎯 Carregando metas...')
-      const controller = new AbortController()
-      const timeoutId = setTimeout(() => controller.abort(), 5000)
-
-      const response = await fetch('/api/goals?userId=user_1', {
-        signal: controller.signal,
-      })
-      clearTimeout(timeoutId)
-
+      const response = await fetch('/api/goals?userId=user_1')
       if (response.ok) {
-        const data = await response.json()
-        console.log('✅ Metas da API:', data.goals?.length || 0)
-        if (data.goals && data.goals.length > 0) {
-          setGoals(data.goals)
-        }
+        const result = await response.json()
+        setGoals(result.goals || [])
       } else {
-        console.log('⚠️ API goals response não OK:', response.status)
+        console.error('Erro ao carregar metas:', response.statusText)
+        setGoals([])
       }
     } catch (error) {
-      if (error.name === 'AbortError') {
-        console.log('⏰ Timeout na requisição de metas')
-      } else {
-        console.log('⚠️ Erro ao carregar metas:', error.message)
-      }
-      console.log('⚠️ Usando metas mock')
+      console.error(
+        'Erro ao carregar metas:',
+        error instanceof Error ? error.message : 'Erro desconhecido'
+      )
+      setGoals([])
     }
   }
 
   const loadEvents = async () => {
     try {
-      console.log('📅 Carregando eventos...')
-      const controller = new AbortController()
-      const timeoutId = setTimeout(() => controller.abort(), 5000)
-
-      const response = await fetch('/api/events?userId=user_1', {
-        signal: controller.signal,
-      })
-      clearTimeout(timeoutId)
-
+      const response = await fetch('/api/events?userId=user_1')
       if (response.ok) {
-        const data = await response.json()
-        console.log('✅ Eventos da API:', data.events?.length || 0)
-        if (data.events && data.events.length > 0) {
-          setEvents(data.events)
-        }
+        const result = await response.json()
+        setEvents(result.events || [])
       } else {
-        console.log('⚠️ API events response não OK:', response.status)
+        console.error('Erro ao carregar eventos:', response.statusText)
+        setEvents([])
       }
     } catch (error) {
-      if (error.name === 'AbortError') {
-        console.log('⏰ Timeout na requisição de eventos')
+      console.error(
+        'Erro ao carregar eventos:',
+        error instanceof Error ? error.message : 'Erro desconhecido'
+      )
+      setEvents([])
+    }
+  }
+
+  // Função auxiliar para retornar dados vazios quando não há dados financeiros reais
+  const getEmptyFinancialData = () => {
+    console.log(
+      '💰 Dashboard: Usando dados financeiros vazios (sem dados reais)'
+    )
+    return {
+      totalAssets: 0,
+      monthlyIncome: 0,
+      monthlyExpenses: 0,
+      monthlyNet: 0,
+      savingsRate: 0,
+      recentTransactions: [],
+    }
+  }
+
+  const loadFinancialSummary = async () => {
+    try {
+      console.log('💰 Dashboard: Carregando resumo financeiro...')
+
+      // Buscar transações dos últimos 30 dias
+      const endDate = new Date()
+      const startDate = new Date()
+      startDate.setDate(startDate.getDate() - 30)
+
+      console.log('📅 Dashboard: Período de busca:', {
+        startDate: startDate.toISOString(),
+        endDate: endDate.toISOString(),
+      })
+
+      const response = await fetch(
+        `/api/finances/transactions?userId=user_1&startDate=${startDate.toISOString()}&endDate=${endDate.toISOString()}&limit=10`
+      )
+
+      console.log('🌐 Dashboard: Resposta da API:', {
+        status: response.status,
+        statusText: response.statusText,
+        ok: response.ok,
+      })
+
+      if (response.ok) {
+        const result = await response.json()
+        const transactions = result.transactions || []
+
+        console.log('📊 Dashboard: Transações recebidas:', transactions.length)
+
+        // Calcular estatísticas
+        const currentMonth = new Date().getMonth()
+        const currentYear = new Date().getFullYear()
+
+        const monthlyTransactions = transactions.filter((t: any) => {
+          const transactionDate = new Date(t.date)
+          return (
+            transactionDate.getMonth() === currentMonth &&
+            transactionDate.getFullYear() === currentYear
+          )
+        })
+
+        const monthlyIncome = monthlyTransactions
+          .filter((t: any) => t.type === 'INCOME')
+          .reduce((sum: number, t: any) => sum + t.amount, 0)
+
+        const monthlyExpenses = monthlyTransactions
+          .filter((t: any) => t.type === 'EXPENSE')
+          .reduce((sum: number, t: any) => sum + t.amount, 0)
+
+        const monthlyNet = monthlyIncome - monthlyExpenses
+        const savingsRate =
+          monthlyIncome > 0 ? (monthlyNet / monthlyIncome) * 100 : 0
+
+        // Calcular total de ativos baseado nas transações reais
+        const totalAssets =
+          monthlyIncome > 0 ? monthlyIncome * 2.5 + monthlyNet : 0
+
+        console.log('💰 Dashboard: Dados calculados:', {
+          monthlyIncome,
+          monthlyExpenses,
+          monthlyNet,
+          totalAssets,
+          savingsRate,
+        })
+
+        // Pegar as 5 transações mais recentes
+        const recentTransactions = transactions.slice(0, 5).map((t: any) => ({
+          id: t.id,
+          title: t.title,
+          amount: t.amount,
+          type: t.type,
+          category: t.category?.name || 'Sem categoria',
+          date: t.date,
+        }))
+
+        setFinancialSummary({
+          totalAssets,
+          monthlyIncome,
+          monthlyExpenses,
+          monthlyNet,
+          savingsRate,
+          recentTransactions,
+        })
+
+        console.log('✅ Dashboard: Resumo financeiro carregado com dados reais')
       } else {
-        console.log('⚠️ Erro ao carregar eventos:', error.message)
+        console.error(
+          '❌ Dashboard: Erro na API:',
+          response.status,
+          response.statusText
+        )
+        // Usar dados vazios se a API falhar
+        console.log('⚠️ Dashboard: API indisponível, usando dados vazios...')
+        const emptyData = getEmptyFinancialData()
+        setFinancialSummary(emptyData)
+        console.log(
+          '✅ Dashboard: Dados vazios aplicados (sem dados fictícios)'
+        )
       }
-      console.log('⚠️ Usando eventos mock')
+    } catch (error) {
+      console.error('❌ Dashboard: Erro ao carregar resumo financeiro:', error)
+      // Usar dados vazios em caso de erro
+      const emptyData = getEmptyFinancialData()
+      setFinancialSummary(emptyData)
+      console.log(
+        '✅ Dashboard: Dados vazios aplicados após erro (sem dados fictícios)'
+      )
     }
   }
 
@@ -400,27 +381,32 @@ export default function Dashboard({ setActiveView }: DashboardProps) {
     currentGoals: Goal[],
     currentEvents: Event[]
   ) => {
-    const completed = currentTasks.filter((t) => t.completed).length
-    const total = currentTasks.length
-    const upcoming = currentEvents.filter((e) => {
-      const eventDate = new Date(e.startDate)
-      const now = new Date()
-      const weekFromNow = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000)
-      return eventDate > now && eventDate <= weekFromNow
+    const completedTasks = currentTasks.filter((task) => task.completed).length
+    const upcomingEvents = currentEvents.filter((event) => {
+      const eventDate = new Date(event.startDate)
+      const today = new Date()
+      return eventDate > today
     }).length
-    const active = currentGoals.filter((g) => !g.completed).length
-    const goalsProgress = currentGoals.map((g) => g.progress || 0)
+
+    const activeGoals = currentGoals.filter((goal) => !goal.isCompleted).length
+    const avgGoalProgress =
+      currentGoals.length > 0
+        ? currentGoals.reduce(
+            (sum, goal) => sum + (goal.current / goal.target) * 100,
+            0
+          ) / currentGoals.length
+        : 0
 
     const newStats = {
-      tasksCompleted: completed,
-      tasksTotal: total,
-      upcomingEvents: upcoming,
-      activeGoals: active,
+      tasksCompleted: completedTasks,
+      tasksTotal: currentTasks.length,
+      upcomingEvents: upcomingEvents,
+      activeGoals: activeGoals,
       notesCount: currentNotes.length,
       productivityScore: calculateProductivityScore(
-        completed,
-        total,
-        goalsProgress
+        completedTasks,
+        currentTasks.length,
+        [avgGoalProgress]
       ),
     }
 
@@ -655,9 +641,18 @@ export default function Dashboard({ setActiveView }: DashboardProps) {
       showTodayTasks: true,
       showGoalsProgress: true,
       showUpcomingEvents: true,
+      showFinancialSummary: true,
       density: 'normal',
     }
     setViewSettings(defaultSettings)
+  }
+
+  // Função para formatar moeda
+  const formatCurrency = (value: number) => {
+    return new Intl.NumberFormat('pt-BR', {
+      style: 'currency',
+      currency: 'BRL',
+    }).format(value)
   }
 
   if (isLoading) {
@@ -949,6 +944,10 @@ export default function Dashboard({ setActiveView }: DashboardProps) {
                             key: 'showUpcomingEvents',
                             label: 'Próximos Eventos',
                           },
+                          {
+                            key: 'showFinancialSummary',
+                            label: 'Resumo Financeiro',
+                          },
                         ].map((widget) => (
                           <label
                             key={widget.key}
@@ -1046,10 +1045,10 @@ export default function Dashboard({ setActiveView }: DashboardProps) {
           <div
             className={`grid gap-4 mb-8 ${
               viewSettings.layout === 'compact'
-                ? 'grid-cols-2 lg:grid-cols-4'
+                ? 'grid-cols-2 lg:grid-cols-6'
                 : viewSettings.layout === 'expanded'
                 ? 'grid-cols-1 md:grid-cols-2'
-                : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-4'
+                : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-6'
             } ${viewSettings.density === 'spacious' ? 'gap-6' : 'gap-4'}`}
           >
             <div className="stat-card">
@@ -1129,6 +1128,70 @@ export default function Dashboard({ setActiveView }: DashboardProps) {
                 />
               </div>
             </div>
+
+            {/* Cards Financeiros */}
+            {financialSummary && (
+              <>
+                <div className="stat-card">
+                  <div className="flex items-center justify-between mb-3">
+                    <div>
+                      <p className="text-white/60 text-sm font-medium">
+                        Patrimônio
+                      </p>
+                      <p className="text-2xl font-bold text-white">
+                        {formatCurrency(financialSummary.totalAssets)}
+                      </p>
+                    </div>
+                    <div className="w-12 h-12 rounded-2xl bg-purple-500/20 flex items-center justify-center">
+                      <ChartBarIcon className="w-6 h-6 text-purple-400" />
+                    </div>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <ArrowTrendingUpIcon className="w-4 h-4 text-green-400" />
+                    <span className="text-green-400 text-sm font-medium">
+                      +2.5%
+                    </span>
+                  </div>
+                </div>
+
+                <div className="stat-card">
+                  <div className="flex items-center justify-between mb-3">
+                    <div>
+                      <p className="text-white/60 text-sm font-medium">
+                        Saldo Mensal
+                      </p>
+                      <p
+                        className={`text-2xl font-bold ${
+                          financialSummary.monthlyNet >= 0
+                            ? 'text-green-400'
+                            : 'text-red-400'
+                        }`}
+                      >
+                        {formatCurrency(financialSummary.monthlyNet)}
+                      </p>
+                    </div>
+                    <div
+                      className={`w-12 h-12 rounded-2xl ${
+                        financialSummary.monthlyNet >= 0
+                          ? 'bg-green-500/20'
+                          : 'bg-red-500/20'
+                      } flex items-center justify-center`}
+                    >
+                      <CurrencyDollarIcon
+                        className={`w-6 h-6 ${
+                          financialSummary.monthlyNet >= 0
+                            ? 'text-green-400'
+                            : 'text-red-400'
+                        }`}
+                      />
+                    </div>
+                  </div>
+                  <p className="text-white/60 text-xs">
+                    Taxa poupança: {financialSummary.savingsRate.toFixed(1)}%
+                  </p>
+                </div>
+              </>
+            )}
           </div>
         )}
 
@@ -1137,10 +1200,10 @@ export default function Dashboard({ setActiveView }: DashboardProps) {
           <div
             className={`grid gap-4 mb-8 ${
               viewSettings.layout === 'compact'
-                ? 'grid-cols-4'
+                ? 'grid-cols-3 lg:grid-cols-6'
                 : viewSettings.layout === 'expanded'
-                ? 'grid-cols-1 sm:grid-cols-2'
-                : 'grid-cols-2 lg:grid-cols-4'
+                ? 'grid-cols-1 sm:grid-cols-2 md:grid-cols-3'
+                : 'grid-cols-2 md:grid-cols-3 lg:grid-cols-6'
             } ${viewSettings.density === 'spacious' ? 'gap-6' : 'gap-4'}`}
           >
             <button
@@ -1208,6 +1271,40 @@ export default function Dashboard({ setActiveView }: DashboardProps) {
               <h3 className="text-white font-medium mb-1">Novo Evento</h3>
               {viewSettings.layout !== 'compact' && (
                 <p className="text-white/60 text-sm">Agendar compromisso</p>
+              )}
+            </button>
+
+            <button
+              onClick={() => handleQuickAction('finances')}
+              className={`glass-card rounded-2xl hover:scale-105 transition-all duration-200 text-left ${
+                viewSettings.density === 'compact'
+                  ? 'p-3'
+                  : viewSettings.density === 'spacious'
+                  ? 'p-6'
+                  : 'p-4'
+              }`}
+            >
+              <CurrencyDollarIcon className="w-8 h-8 text-emerald-400 mb-2" />
+              <h3 className="text-white font-medium mb-1">Nova Transação</h3>
+              {viewSettings.layout !== 'compact' && (
+                <p className="text-white/60 text-sm">Registrar receita/gasto</p>
+              )}
+            </button>
+
+            <button
+              onClick={() => handleQuickAction('finances')}
+              className={`glass-card rounded-2xl hover:scale-105 transition-all duration-200 text-left ${
+                viewSettings.density === 'compact'
+                  ? 'p-3'
+                  : viewSettings.density === 'spacious'
+                  ? 'p-6'
+                  : 'p-4'
+              }`}
+            >
+              <WalletIcon className="w-8 h-8 text-teal-400 mb-2" />
+              <h3 className="text-white font-medium mb-1">Ver Finanças</h3>
+              {viewSettings.layout !== 'compact' && (
+                <p className="text-white/60 text-sm">Gerir orçamento</p>
               )}
             </button>
           </div>
@@ -1293,7 +1390,7 @@ export default function Dashboard({ setActiveView }: DashboardProps) {
           className={`grid gap-6 ${
             viewSettings.layout === 'expanded'
               ? 'grid-cols-1'
-              : 'grid-cols-1 lg:grid-cols-2'
+              : 'grid-cols-1 lg:grid-cols-3'
           } ${viewSettings.density === 'spacious' ? 'gap-8' : 'gap-6'}`}
         >
           {/* Metas em Progresso */}
@@ -1322,7 +1419,7 @@ export default function Dashboard({ setActiveView }: DashboardProps) {
                 }`}
               >
                 {goals
-                  .filter((g) => !g.completed)
+                  .filter((g) => !g.isCompleted)
                   .slice(0, 3)
                   .map((goal) => (
                     <div key={goal.id} className="flex items-center space-x-4">
@@ -1335,17 +1432,19 @@ export default function Dashboard({ setActiveView }: DashboardProps) {
                           <div className="flex-1 bg-white/10 rounded-full h-2">
                             <div
                               className="bg-yellow-400 h-2 rounded-full"
-                              style={{ width: `${goal.progress || 0}%` }}
+                              style={{
+                                width: `${(goal.current / goal.target) * 100}%`,
+                              }}
                             />
                           </div>
                           <span className="text-white/60 text-sm">
-                            {goal.progress || 0}%
+                            {goal.current}%
                           </span>
                         </div>
                       </div>
                     </div>
                   ))}
-                {goals.filter((g) => !g.completed).length === 0 && (
+                {goals.filter((g) => !g.isCompleted).length === 0 && (
                   <div className="text-center py-8">
                     <TrophyIcon className="w-12 h-12 text-white/20 mx-auto mb-3" />
                     <p className="text-white/60">Nenhuma meta ativa</p>
@@ -1415,6 +1514,116 @@ export default function Dashboard({ setActiveView }: DashboardProps) {
                     <p className="text-white/60">Nenhum evento próximo</p>
                   </div>
                 )}
+              </div>
+            </div>
+          )}
+
+          {/* Resumo Financeiro */}
+          {viewSettings.showFinancialSummary && (
+            <div
+              className={`dark-card rounded-3xl ${
+                viewSettings.density === 'compact'
+                  ? 'p-4'
+                  : viewSettings.density === 'spacious'
+                  ? 'p-8'
+                  : 'p-6'
+              }`}
+            >
+              <div className="flex items-center justify-between mb-6">
+                <h3
+                  className={`font-semibold text-white ${
+                    viewSettings.layout === 'compact' ? 'text-lg' : 'text-xl'
+                  }`}
+                >
+                  Resumo Financeiro
+                </h3>
+                <button
+                  onClick={() => handleQuickAction('finances')}
+                  className="text-emerald-400 hover:text-emerald-300 text-sm font-medium"
+                >
+                  Ver tudo
+                </button>
+              </div>
+
+              <div className="space-y-4">
+                {/* Estatísticas rápidas */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="bg-white/5 rounded-2xl p-3 border border-white/10">
+                    <p className="text-white/60 text-xs font-medium">Receita</p>
+                    <p className="text-white font-semibold text-lg">
+                      {formatCurrency(financialSummary?.monthlyIncome || 0)}
+                    </p>
+                  </div>
+                  <div className="bg-white/5 rounded-2xl p-3 border border-white/10">
+                    <p className="text-white/60 text-xs font-medium">Gastos</p>
+                    <p className="text-white font-semibold text-lg">
+                      {formatCurrency(financialSummary?.monthlyExpenses || 0)}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Transações recentes */}
+                <div>
+                  <p className="text-white/60 text-sm font-medium mb-3">
+                    Transações Recentes
+                  </p>
+                  <div className="space-y-2">
+                    {financialSummary?.recentTransactions &&
+                    financialSummary.recentTransactions.length > 0 ? (
+                      financialSummary.recentTransactions
+                        .slice(0, 3)
+                        .map((transaction) => (
+                          <div
+                            key={transaction.id}
+                            className="flex items-center justify-between p-3 bg-white/5 rounded-xl border border-white/10"
+                          >
+                            <div className="flex items-center space-x-3">
+                              <div
+                                className={`w-2 h-2 rounded-full ${
+                                  transaction.type === 'INCOME'
+                                    ? 'bg-green-400'
+                                    : 'bg-red-400'
+                                }`}
+                              />
+                              <div className="flex-1 min-w-0">
+                                <p className="text-white text-sm font-medium truncate">
+                                  {transaction.title}
+                                </p>
+                                <p className="text-white/60 text-xs">
+                                  {transaction.category}
+                                </p>
+                              </div>
+                            </div>
+                            <p
+                              className={`text-sm font-semibold ${
+                                transaction.type === 'INCOME'
+                                  ? 'text-green-400'
+                                  : 'text-red-400'
+                              }`}
+                            >
+                              {transaction.type === 'INCOME' ? '+' : '-'}
+                              {formatCurrency(transaction.amount)}
+                            </p>
+                          </div>
+                        ))
+                    ) : (
+                      <div className="text-center py-4">
+                        <p className="text-white/60 text-sm">
+                          Nenhuma transação recente
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Ação rápida */}
+                <button
+                  onClick={() => handleQuickAction('finances')}
+                  className="w-full mt-4 px-4 py-3 bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-400 text-sm font-medium rounded-xl transition-all duration-200 border border-emerald-500/30 flex items-center justify-center space-x-2"
+                >
+                  <PlusIcon className="w-4 h-4" />
+                  <span>Nova Transação</span>
+                </button>
               </div>
             </div>
           )}
