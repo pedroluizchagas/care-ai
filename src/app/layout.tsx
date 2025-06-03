@@ -8,58 +8,17 @@ const inter = Inter({ subsets: ['latin'], display: 'swap' })
 export const metadata: Metadata = {
   title: 'CareAI - Seu Assistente Pessoal Inteligente',
   description:
-    'Seu assistente pessoal Freech para organizar sua vida com inteligência artificial. Gerencie tarefas, agenda, metas e muito mais.',
-  keywords: 'assistente AI, Freech, produtividade, agenda, tarefas, metas, PWA',
-  authors: [{ name: 'CareAI Team' }],
-  creator: 'CareAI',
-  publisher: 'CareAI',
-  metadataBase: new URL('http://localhost:3001'),
+    'Gerencie sua rotina diária com inteligência artificial. Organize tarefas, agenda, metas e muito mais.',
+  keywords: 'assistente AI, produtividade, agenda, tarefas, metas',
   icons: {
     icon: [
-      {
-        url: '/freech-avatar.jpg',
-        sizes: '192x192',
-        type: 'image/jpeg',
-      },
       {
         url: '/favicon.svg',
         type: 'image/svg+xml',
       },
     ],
-    shortcut: '/freech-avatar.jpg',
-    apple: [
-      {
-        url: '/freech-avatar.jpg',
-        sizes: '180x180',
-        type: 'image/jpeg',
-      },
-    ],
-  },
-  manifest: '/manifest.json',
-  appleWebApp: {
-    capable: true,
-    statusBarStyle: 'black-translucent',
-    title: 'CareAI - Freech',
-  },
-  openGraph: {
-    type: 'website',
-    siteName: 'CareAI',
-    title: 'CareAI - Seu Assistente Pessoal Inteligente',
-    description: 'Seu assistente pessoal Freech para organizar sua vida',
-    images: [
-      {
-        url: '/freech-avatar.jpg',
-        width: 512,
-        height: 512,
-        alt: 'Freech - Assistente CareAI',
-      },
-    ],
-  },
-  twitter: {
-    card: 'summary',
-    title: 'CareAI - Seu Assistente Pessoal Inteligente',
-    description: 'Seu assistente pessoal Freech para organizar sua vida',
-    images: ['/freech-avatar.jpg'],
+    shortcut: '/favicon.svg',
+    apple: '/favicon.svg',
   },
 }
 
@@ -106,23 +65,6 @@ export default function RootLayout({
                 secondary: '#ffffff',
               },
             },
-          }}
-        />
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `
-              if ('serviceWorker' in navigator) {
-                window.addEventListener('load', function() {
-                  navigator.serviceWorker.register('/sw.js')
-                    .then(function(registration) {
-                      console.log('SW registered: ', registration);
-                    })
-                    .catch(function(registrationError) {
-                      console.log('SW registration failed: ', registrationError);
-                    });
-                });
-              }
-            `,
           }}
         />
       </body>

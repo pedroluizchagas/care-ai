@@ -1,4 +1,4 @@
-import type { NextApiRequest, NextApiResponse } from 'next'
+import { NextRequest } from 'next/server'
 import {
   generateChatResponse,
   generateResponseAfterFunction,
@@ -7,19 +7,12 @@ import {
 import { executeFunction } from '@/lib/agent-functions'
 import prisma from '@/lib/database'
 
-export default async function handler(
-  req: NextApiRequest,
-  res: NextApiResponse
-) {
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' })
-  }
-
+export async function POST(request: NextRequest) {
   try {
-    const { message, sessionId } = req.body
+    const { message, sessionId } = await request.json()
 
     if (!message || typeof message !== 'string') {
-      return res.status(400).json({ error: 'Message is required' })
+      return Response.json({ error: 'Message is required' }, { status: 400 })
     }
 
     // Por enquanto usar usuário padrão (em produção seria do JWT/session)
@@ -149,7 +142,7 @@ export default async function handler(
     })
 
     // 8. Resposta final com ações executadas
-    return res.status(200).json({
+    return Response.json({
       message: finalResponse,
       sessionId: chatSession.id,
       actionsExecuted: functionResults.length,
@@ -161,9 +154,12 @@ export default async function handler(
     })
   } catch (error: any) {
     console.error('Erro na API do chat:', error)
-    return res.status(500).json({
-      error: 'Erro interno do servidor',
-      details: error.message,
-    })
+    return Response.json(
+      {
+        error: 'Erro interno do servidor',
+        details: error.message,
+      },
+      { status: 500 }
+    )
   }
 }

@@ -222,15 +222,24 @@ export default function Dashboard({ setActiveView }: DashboardProps) {
   })
 
   useEffect(() => {
+    console.log('🚀 Dashboard: Iniciando carregamento...')
     loadAllData()
+
+    // Reduzir frequência do timer de 1s para 30s
     const timer = setInterval(() => {
       setCurrentTime(new Date())
       checkForNotifications()
-    }, 1000)
-    return () => clearInterval(timer)
+    }, 30000) // Mudança de 1000 para 30000 (30 segundos)
+
+    console.log('✅ Dashboard: Timer configurado')
+    return () => {
+      console.log('🧹 Dashboard: Limpando timer')
+      clearInterval(timer)
+    }
   }, [])
 
   useEffect(() => {
+    console.log('📅 Dashboard: Eventos atualizados:', events.length)
     if (events.length > 0) {
       generateNotifications()
     }
@@ -242,17 +251,25 @@ export default function Dashboard({ setActiveView }: DashboardProps) {
 
     try {
       // Carregar dados mock primeiro (garantir que algo apareça)
+      console.log('📦 Dashboard: Carregando dados mock...')
       setTasks(mockTasks)
       setNotes(mockNotes)
       setGoals(mockGoals)
       setEvents(mockEvents)
       calculateStats(mockTasks, mockNotes, mockGoals, mockEvents)
+      console.log('✅ Dashboard: Dados mock carregados')
 
-      // Tentar carregar da API
-      await Promise.all([loadTasks(), loadNotes(), loadGoals(), loadEvents()])
+      // Tentar carregar da API sequencialmente para evitar sobrecarga
+      console.log('🌐 Dashboard: Iniciando carregamento da API...')
+      await loadTasks()
+      await loadNotes()
+      await loadGoals()
+      await loadEvents()
+      console.log('✅ Dashboard: Carregamento da API concluído')
     } catch (error) {
       console.error('❌ Erro ao carregar dados do dashboard:', error)
     } finally {
+      console.log('🏁 Dashboard: Finalizando carregamento')
       setIsLoading(false)
     }
   }
@@ -260,15 +277,29 @@ export default function Dashboard({ setActiveView }: DashboardProps) {
   const loadTasks = async () => {
     try {
       console.log('📋 Carregando tarefas...')
-      const response = await fetch('/api/tasks?userId=user_1')
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), 5000) // 5 segundos timeout
+
+      const response = await fetch('/api/tasks?userId=user_1', {
+        signal: controller.signal,
+      })
+      clearTimeout(timeoutId)
+
       if (response.ok) {
         const data = await response.json()
         console.log('✅ Tarefas da API:', data.tasks?.length || 0)
         if (data.tasks && data.tasks.length > 0) {
           setTasks(data.tasks)
         }
+      } else {
+        console.log('⚠️ API tasks response não OK:', response.status)
       }
     } catch (error) {
+      if (error.name === 'AbortError') {
+        console.log('⏰ Timeout na requisição de tarefas')
+      } else {
+        console.log('⚠️ Erro ao carregar tarefas:', error.message)
+      }
       console.log('⚠️ Usando tarefas mock')
     }
   }
@@ -276,15 +307,29 @@ export default function Dashboard({ setActiveView }: DashboardProps) {
   const loadNotes = async () => {
     try {
       console.log('📝 Carregando notas...')
-      const response = await fetch('/api/notes?userId=user_1')
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), 5000)
+
+      const response = await fetch('/api/notes?userId=user_1', {
+        signal: controller.signal,
+      })
+      clearTimeout(timeoutId)
+
       if (response.ok) {
         const data = await response.json()
         console.log('✅ Notas da API:', data.notes?.length || 0)
         if (data.notes && data.notes.length > 0) {
           setNotes(data.notes)
         }
+      } else {
+        console.log('⚠️ API notes response não OK:', response.status)
       }
     } catch (error) {
+      if (error.name === 'AbortError') {
+        console.log('⏰ Timeout na requisição de notas')
+      } else {
+        console.log('⚠️ Erro ao carregar notas:', error.message)
+      }
       console.log('⚠️ Usando notas mock')
     }
   }
@@ -292,15 +337,29 @@ export default function Dashboard({ setActiveView }: DashboardProps) {
   const loadGoals = async () => {
     try {
       console.log('🎯 Carregando metas...')
-      const response = await fetch('/api/goals?userId=user_1')
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), 5000)
+
+      const response = await fetch('/api/goals?userId=user_1', {
+        signal: controller.signal,
+      })
+      clearTimeout(timeoutId)
+
       if (response.ok) {
         const data = await response.json()
         console.log('✅ Metas da API:', data.goals?.length || 0)
         if (data.goals && data.goals.length > 0) {
           setGoals(data.goals)
         }
+      } else {
+        console.log('⚠️ API goals response não OK:', response.status)
       }
     } catch (error) {
+      if (error.name === 'AbortError') {
+        console.log('⏰ Timeout na requisição de metas')
+      } else {
+        console.log('⚠️ Erro ao carregar metas:', error.message)
+      }
       console.log('⚠️ Usando metas mock')
     }
   }
@@ -308,15 +367,29 @@ export default function Dashboard({ setActiveView }: DashboardProps) {
   const loadEvents = async () => {
     try {
       console.log('📅 Carregando eventos...')
-      const response = await fetch('/api/events?userId=user_1')
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), 5000)
+
+      const response = await fetch('/api/events?userId=user_1', {
+        signal: controller.signal,
+      })
+      clearTimeout(timeoutId)
+
       if (response.ok) {
         const data = await response.json()
         console.log('✅ Eventos da API:', data.events?.length || 0)
         if (data.events && data.events.length > 0) {
           setEvents(data.events)
         }
+      } else {
+        console.log('⚠️ API events response não OK:', response.status)
       }
     } catch (error) {
+      if (error.name === 'AbortError') {
+        console.log('⏰ Timeout na requisição de eventos')
+      } else {
+        console.log('⚠️ Erro ao carregar eventos:', error.message)
+      }
       console.log('⚠️ Usando eventos mock')
     }
   }
