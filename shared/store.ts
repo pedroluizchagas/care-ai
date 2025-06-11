@@ -1,4 +1,4 @@
-import { Task, Note, Goal, Event, ChatMessage, UserPreferences } from '@/types'
+import { Task, Note, Goal, Event, ChatMessage, UserPreferences } from '@shared/types'
 import { generateId } from './utils'
 
 // Simulação de store global com localStorage

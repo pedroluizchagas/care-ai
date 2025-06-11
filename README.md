@@ -177,29 +177,22 @@ Comandos que o CareAI entende:
 
 ```
 care-ai/
-├── src/
-│   ├── app/                 # App Router do Next.js
-│   │   ├── globals.css      # Estilos globais
-│   │   ├── layout.tsx       # Layout principal
-│   │   └── page.tsx         # Página inicial
-│   ├── components/          # Componentes React
-│   │   ├── Sidebar.tsx      # Navegação lateral
-│   │   ├── Dashboard.tsx    # Dashboard principal
-│   │   ├── Chat.tsx         # Chat AI
-│   │   ├── Tasks.tsx        # Gerenciador de tarefas
-│   │   ├── Notes.tsx        # Sistema de notas
-│   │   ├── Goals.tsx        # Metas e objetivos
-│   │   └── Calendar.tsx     # Agenda
-│   ├── lib/                 # Utilitários e lógica
-│   │   ├── store.ts         # Gerenciamento de estado
-│   │   └── utils.ts         # Funções utilitárias
-│   └── types/               # Definições TypeScript
-│       └── index.ts         # Interfaces e tipos
-├── public/                  # Arquivos estáticos
-├── package.json             # Dependências
-├── tailwind.config.js       # Configuração Tailwind
-├── tsconfig.json           # Configuração TypeScript
-└── README.md               # Este arquivo
+├── apps/
+│   ├── web/                 # Frontend Next.js 14
+│   │   ├── src/             # Códigos e componentes
+│   │   ├── public/          # Arquivos estáticos
+│   │   ├── package.json     # Dependências do web
+│   │   └── tsconfig.json    # Configuração TypeScript
+│   └── mobile/              # Novo app React Native (Expo)
+│       ├── App.tsx          # Entrada da aplicação mobile
+│       └── package.json     # Dependências do mobile
+├── backend/                 # APIs e Prisma
+│   └── prisma/              # Schema e seeds
+├── shared/                  # Tipos e regras de negócio compartilhadas
+│   ├── types/               # Definições TypeScript
+│   └── store.ts             # Lógica reutilizável
+├── package.json             # Configuração do monorepo
+└── tsconfig.base.json       # Configuração base TypeScript
 ```
 
 ## 📊 Performance e Otimização
