@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Task, Goal, Note, DashboardStats } from '@/types'
+import { Task, Goal, Note, DashboardStats } from '@shared/types'
 import { formatDate, calculateProductivityScore } from '@/lib/utils'
 import {
   CalendarIcon,
