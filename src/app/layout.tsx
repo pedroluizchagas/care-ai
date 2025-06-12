@@ -2,6 +2,7 @@ import './globals.css'
 import type { Metadata, Viewport } from 'next'
 import { Inter } from 'next/font/google'
 import { Toaster } from 'react-hot-toast'
+import { TasksProvider } from '@/viewmodels/useTasks'
 
 const inter = Inter({ subsets: ['latin'], display: 'swap' })
 
@@ -38,7 +39,7 @@ export default function RootLayout({
   return (
     <html lang="pt-BR" className="dark">
       <body className={`${inter.className} min-h-screen`}>
-        {children}
+        <TasksProvider>{children}</TasksProvider>
         <Toaster
           position="top-right"
           toastOptions={{
