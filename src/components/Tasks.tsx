@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { Task } from '@/types'
 import { formatDate, getPriorityColor } from '@/lib/utils'
+import { useTasks } from '@/viewmodels/useTasks'
 import {
   PlusIcon,
   CheckCircleIcon,
@@ -14,7 +15,7 @@ import {
 import toast from 'react-hot-toast'
 
 export default function Tasks() {
-  const [tasks, setTasks] = useState<Task[]>([])
+  const { tasks, addTask, updateTask, deleteTask } = useTasks()
   const [filteredTasks, setFilteredTasks] = useState<Task[]>([])
   const [filter, setFilter] = useState<'all' | 'pending' | 'completed'>('all')
   const [priorityFilter, setPriorityFilter] = useState<string>('all')
@@ -36,30 +37,8 @@ export default function Tasks() {
   })
 
   useEffect(() => {
-    loadTasks()
-  }, [])
-
-  useEffect(() => {
     applyFilters()
   }, [tasks, filter, priorityFilter])
-
-  const loadTasks = async () => {
-    try {
-      console.log('📋 Carregando tarefas da API...')
-      const response = await fetch('/api/tasks?userId=user_1')
-      if (response.ok) {
-        const data = await response.json()
-        console.log('✅ Tarefas carregadas:', data.tasks?.length || 0)
-        setTasks(data.tasks || [])
-      } else {
-        console.error('❌ Erro ao carregar tarefas:', response.statusText)
-        toast.error('Erro ao carregar tarefas')
-      }
-    } catch (error) {
-      console.error('❌ Erro ao carregar tarefas:', error)
-      toast.error('Erro ao conectar com o servidor')
-    }
-  }
 
   const applyFilters = () => {
     let filtered = tasks
@@ -94,84 +73,45 @@ export default function Tasks() {
     setFilteredTasks(filtered)
   }
 
-  const handleCreateTask = async () => {
+  const handleCreateTask = () => {
     if (!formData.title.trim()) {
       toast.error('Título é obrigatório')
       return
     }
 
-    try {
-      const response = await fetch('/api/tasks', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          title: formData.title,
-          description: formData.description,
-          priority: formData.priority,
-          category: formData.category,
-          dueDate: formData.dueDate
-            ? new Date(formData.dueDate).toISOString()
-            : null,
-          userId: 'user_1',
-        }),
-      })
+    addTask({
+      title: formData.title,
+      description: formData.description,
+      priority: formData.priority,
+      category: formData.category,
+      dueDate: formData.dueDate ? new Date(formData.dueDate) : undefined,
+      completed: false,
+    })
 
-      if (response.ok) {
-        const data = await response.json()
-        setTasks((prev) => [data.task, ...prev])
-        resetForm()
-        setShowForm(false)
-        toast.success('Tarefa criada com sucesso!')
-      } else {
-        const error = await response.json()
-        toast.error(error.error || 'Erro ao criar tarefa')
-      }
-    } catch (error) {
-      console.error('Erro ao criar tarefa:', error)
-      toast.error('Erro ao conectar com o servidor')
-    }
+    resetForm()
+    setShowForm(false)
+    toast.success('Tarefa criada com sucesso!')
   }
 
-  const handleEditTask = async () => {
+  const handleEditTask = () => {
     if (!formData.title.trim() || !selectedTask) {
       toast.error('Título é obrigatório')
       return
     }
 
-    try {
-      const response = await fetch('/api/tasks', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          id: selectedTask.id,
-          title: formData.title,
-          description: formData.description,
-          priority: formData.priority,
-          category: formData.category,
-          dueDate: formData.dueDate
-            ? new Date(formData.dueDate).toISOString()
-            : null,
-        }),
-      })
+    updateTask(selectedTask.id, {
+      title: formData.title,
+      description: formData.description,
+      priority: formData.priority,
+      category: formData.category,
+      dueDate: formData.dueDate ? new Date(formData.dueDate) : undefined,
+    })
 
-      if (response.ok) {
-        const data = await response.json()
-        setTasks((prev) =>
-          prev.map((t) => (t.id === selectedTask.id ? data.task : t))
-        )
-        resetForm()
-        setShowForm(false)
-        setIsEditMode(false)
-        setSelectedTask(null)
-        toast.success('Tarefa atualizada com sucesso!')
-      } else {
-        const error = await response.json()
-        toast.error(error.error || 'Erro ao atualizar tarefa')
-      }
-    } catch (error) {
-      console.error('Erro ao atualizar tarefa:', error)
-      toast.error('Erro ao conectar com o servidor')
-    }
+    resetForm()
+    setShowForm(false)
+    setIsEditMode(false)
+    setSelectedTask(null)
+    toast.success('Tarefa atualizada com sucesso!')
   }
 
   const openEditModal = (task: Task) => {
@@ -202,55 +142,18 @@ export default function Tasks() {
     return dateObj.toISOString().split('T')[0]
   }
 
-  const toggleTaskCompletion = async (taskId: string) => {
+  const toggleTaskCompletion = (taskId: string) => {
     const task = tasks.find((t) => t.id === taskId)
     if (!task) return
 
-    try {
-      const response = await fetch('/api/tasks', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          id: taskId,
-          completed: !task.completed,
-        }),
-      })
-
-      if (response.ok) {
-        const data = await response.json()
-        setTasks((prev) => prev.map((t) => (t.id === taskId ? data.task : t)))
-        toast.success(
-          data.task.completed ? 'Tarefa concluída!' : 'Tarefa reaberta!'
-        )
-      } else {
-        const error = await response.json()
-        toast.error(error.error || 'Erro ao atualizar tarefa')
-      }
-    } catch (error) {
-      console.error('Erro ao atualizar tarefa:', error)
-      toast.error('Erro ao conectar com o servidor')
-    }
+    updateTask(taskId, { completed: !task.completed })
+    toast.success(task.completed ? 'Tarefa reaberta!' : 'Tarefa concluída!')
   }
 
-  const deleteTask = async (taskId: string) => {
+  const deleteTaskHandler = (taskId: string) => {
     if (!confirm('Tem certeza que deseja excluir esta tarefa?')) return
-
-    try {
-      const response = await fetch(`/api/tasks?id=${taskId}`, {
-        method: 'DELETE',
-      })
-
-      if (response.ok) {
-        setTasks((prev) => prev.filter((t) => t.id !== taskId))
-        toast.success('Tarefa excluída!')
-      } else {
-        const error = await response.json()
-        toast.error(error.error || 'Erro ao excluir tarefa')
-      }
-    } catch (error) {
-      console.error('Erro ao excluir tarefa:', error)
-      toast.error('Erro ao conectar com o servidor')
-    }
+    deleteTask(taskId)
+    toast.success('Tarefa excluída!')
   }
 
   const categories = [
@@ -396,7 +299,7 @@ export default function Tasks() {
                   </button>
 
                   <button
-                    onClick={() => deleteTask(task.id)}
+                    onClick={() => deleteTaskHandler(task.id)}
                     className="icon-btn !w-8 !h-8 text-red-400 hover:text-red-300"
                   >
                     <TrashIcon className="w-4 h-4" />
