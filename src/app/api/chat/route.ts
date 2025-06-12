@@ -3,9 +3,9 @@ import {
   generateChatResponse,
   generateResponseAfterFunction,
   UserContext,
-} from '@/lib/groq'
-import { executeFunction } from '@/lib/agent-functions'
-import prisma from '@/lib/database'
+} from '@/infrastructure/groq'
+import { executeFunction } from '@/infrastructure/agent-functions'
+import prisma from '@/infrastructure/database'
 
 export async function POST(request: NextRequest) {
   try {

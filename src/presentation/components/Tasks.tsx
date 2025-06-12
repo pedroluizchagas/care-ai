@@ -1,8 +1,8 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Task } from '@/types'
-import { formatDate, getPriorityColor } from '@/lib/utils'
+import { Task } from '@/shared/types'
+import { formatDate, getPriorityColor } from '@/shared/utils'
 import {
   PlusIcon,
   CheckCircleIcon,

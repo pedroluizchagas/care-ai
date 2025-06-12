@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import prisma from '@/lib/database'
+import prisma from '@/infrastructure/database'
 
 // GET - Listar tarefas do usuário
 export async function GET(request: NextRequest) {

@@ -1,8 +1,8 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Task, Goal, Note, DashboardStats } from '@/types'
-import { formatDate, calculateProductivityScore } from '@/lib/utils'
+import { Task, Goal, Note, DashboardStats } from '@/shared/types'
+import { formatDate, calculateProductivityScore } from '@/shared/utils'
 import {
   CalendarIcon,
   CheckCircleIcon,
