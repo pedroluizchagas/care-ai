@@ -7,11 +7,13 @@ import {
   DocumentTextIcon,
   TrophyIcon,
   CalendarIcon,
+  CalendarDaysIcon,
   Bars3Icon,
   XMarkIcon,
   CogIcon,
   SparklesIcon,
   UserCircleIcon,
+  CurrencyDollarIcon,
 } from '@heroicons/react/24/outline'
 import { useState, useEffect } from 'react'
 
@@ -22,6 +24,7 @@ type ActiveView =
   | 'notes'
   | 'goals'
   | 'calendar'
+  | 'finances'
   | 'settings'
   | 'profile'
 
@@ -71,6 +74,12 @@ const workNavigation = [
     href: 'calendar' as const,
     icon: CalendarIcon,
     description: 'Calendário e eventos',
+  },
+  {
+    name: 'Finanças',
+    href: 'finances' as const,
+    icon: CurrencyDollarIcon,
+    description: 'Gestão financeira pessoal',
   },
 ]
 

@@ -19,9 +19,19 @@ export default function FreechAvatar({
     >
       <img
         src="/freech-avatar.jpg"
-        alt="Freech - Assistente CareAI"
+        alt="Freech - Assistente Inteligente"
         className="w-full h-full object-cover"
+        onError={(e) => {
+          // Fallback para ícone se a imagem não existir
+          const target = e.target as HTMLImageElement
+          target.style.display = 'none'
+          target.nextElementSibling?.classList.remove('hidden')
+        }}
       />
+      {/* Fallback icon */}
+      <div className="hidden w-full h-full bg-gradient-accent flex items-center justify-center">
+        <span className="text-white font-bold text-xs">F</span>
+      </div>
     </div>
   )
 }

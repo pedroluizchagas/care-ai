@@ -197,6 +197,84 @@ export const agentFunctions = [
       required: ['title', 'startDate'],
     },
   },
+  {
+    name: 'create_financial_transaction',
+    description: 'Registrar uma nova transação financeira (receita ou despesa)',
+    parameters: {
+      type: 'object',
+      properties: {
+        title: {
+          type: 'string',
+          description: 'Título da transação (ex: Supermercado, Salário)',
+        },
+        description: {
+          type: 'string',
+          description: 'Descrição detalhada da transação',
+        },
+        amount: {
+          type: 'number',
+          description: 'Valor da transação',
+        },
+        type: {
+          type: 'string',
+          enum: ['INCOME', 'EXPENSE'],
+          description:
+            'Tipo da transação - INCOME para receitas, EXPENSE para despesas',
+        },
+        categoryName: {
+          type: 'string',
+          description:
+            'Nome da categoria (será criada automaticamente se não existir)',
+        },
+        paymentMethod: {
+          type: 'string',
+          enum: ['CASH', 'DEBIT', 'CREDIT', 'PIX', 'TRANSFER'],
+          description: 'Método de pagamento',
+        },
+        date: {
+          type: 'string',
+          description:
+            'Data da transação no formato ISO (opcional, usa hoje se não informado)',
+        },
+        tags: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'Tags para organizar a transação',
+        },
+      },
+      required: ['title', 'amount', 'type', 'categoryName'],
+    },
+  },
+  {
+    name: 'create_financial_category',
+    description:
+      'Criar uma nova categoria financeira para organizar receitas ou despesas',
+    parameters: {
+      type: 'object',
+      properties: {
+        name: {
+          type: 'string',
+          description:
+            'Nome da categoria (ex: Alimentação, Salário, Transporte)',
+        },
+        type: {
+          type: 'string',
+          enum: ['INCOME', 'EXPENSE'],
+          description:
+            'Tipo da categoria - INCOME para receitas, EXPENSE para despesas',
+        },
+        icon: {
+          type: 'string',
+          description: 'Emoji representativo da categoria (ex: 🍔, 💰, 🚗)',
+        },
+        color: {
+          type: 'string',
+          description: 'Cor hexadecimal da categoria (ex: #FF5733)',
+        },
+      },
+      required: ['name', 'type'],
+    },
+  },
 ]
 
 // Implementações das funções
@@ -231,6 +309,12 @@ export async function executeFunction(
 
       case 'create_event':
         return await createEvent(parameters, userId)
+
+      case 'create_financial_transaction':
+        return await createFinancialTransaction(parameters, userId)
+
+      case 'create_financial_category':
+        return await createFinancialCategory(parameters, userId)
 
       default:
         throw new Error(`Função desconhecida: ${functionName}`)
@@ -360,7 +444,7 @@ async function listTasks(params: any, userId: string) {
 
     return {
       success: true,
-      message: `�� Encontrei ${tasks.length} tarefa(s)`,
+      message: `✅ Encontrei ${tasks.length} tarefa(s)`,
       data: tasks,
     }
   } catch (error) {
@@ -470,6 +554,140 @@ async function createEvent(params: any, userId: string) {
     }
   } catch (error) {
     console.error('❌ Erro ao criar evento:', error)
+    throw error
+  }
+}
+
+// Implementação: Criar transação financeira
+async function createFinancialTransaction(params: any, userId: string) {
+  console.log('💰 Iniciando criação de transação financeira...')
+  console.log('📝 Dados da transação:', params)
+
+  try {
+    // Determinar o tipo baseado no valor (negativo = despesa, positivo = receita)
+    const amount = Math.abs(params.amount)
+    const type = params.amount < 0 ? 'EXPENSE' : 'INCOME'
+
+    // Extrair o nome da categoria dos parâmetros
+    const categoryName =
+      params.category ||
+      params.categoryName ||
+      (type === 'EXPENSE' ? 'Despesas Gerais' : 'Receitas')
+
+    // Criar um título se não fornecido
+    const title =
+      params.title ||
+      params.description ||
+      `${type === 'EXPENSE' ? 'Despesa' : 'Receita'} de R$ ${amount.toFixed(2)}`
+
+    // Primeiro, buscar ou criar a categoria
+    let category = await prisma.financialCategory.findFirst({
+      where: {
+        name: categoryName,
+        type: type,
+        userId,
+      },
+    })
+
+    if (!category) {
+      // Criar categoria automaticamente se não existir
+      category = await prisma.financialCategory.create({
+        data: {
+          name: categoryName,
+          type: type,
+          icon: type === 'INCOME' ? '💰' : '💸',
+          color: type === 'INCOME' ? '#10B981' : '#EF4444',
+          userId,
+        },
+      })
+      console.log('📁 Categoria criada automaticamente:', category)
+    }
+
+    // Criar a transação
+    const transaction = await prisma.financialTransaction.create({
+      data: {
+        title: title,
+        description: params.description || '',
+        amount: amount,
+        type: type,
+        categoryId: category.id,
+        paymentMethod: params.paymentMethod || 'CASH',
+        date: params.date ? new Date(params.date) : new Date(),
+        tags: params.tags ? JSON.stringify(params.tags) : '',
+        userId,
+      },
+      include: {
+        category: true,
+      },
+    })
+
+    console.log('✅ Transação criada com sucesso!', transaction)
+
+    const typeText = type === 'INCOME' ? 'receita' : 'despesa'
+    const amountText = `R$ ${amount.toLocaleString('pt-BR', {
+      minimumFractionDigits: 2,
+    })}`
+
+    return {
+      success: true,
+      message: `💰 ${type === 'INCOME' ? '📈' : '📉'} ${
+        typeText.charAt(0).toUpperCase() + typeText.slice(1)
+      } "${title}" registrada com sucesso! Valor: ${amountText}, Categoria: ${categoryName}`,
+      data: transaction,
+    }
+  } catch (error) {
+    console.error('❌ Erro ao criar transação financeira:', error)
+    throw error
+  }
+}
+
+// Implementação: Criar categoria financeira
+async function createFinancialCategory(params: any, userId: string) {
+  console.log('🗂️ Iniciando criação de categoria financeira...')
+  console.log('📝 Dados da categoria:', params)
+
+  try {
+    // Verificar se já existe uma categoria com o mesmo nome
+    const existingCategory = await prisma.financialCategory.findFirst({
+      where: {
+        name: params.name,
+        type: params.type,
+        userId,
+      },
+    })
+
+    if (existingCategory) {
+      return {
+        success: false,
+        message: `❌ Já existe uma categoria "${params.name}" do tipo ${
+          params.type === 'INCOME' ? 'receita' : 'despesa'
+        }`,
+        data: null,
+      }
+    }
+
+    const category = await prisma.financialCategory.create({
+      data: {
+        name: params.name,
+        type: params.type,
+        icon: params.icon || (params.type === 'INCOME' ? '💰' : '💸'),
+        color:
+          params.color || (params.type === 'INCOME' ? '#10B981' : '#EF4444'),
+        userId,
+      },
+    })
+
+    console.log('✅ Categoria financeira criada com sucesso!', category)
+
+    const typeText = params.type === 'INCOME' ? 'receitas' : 'despesas'
+
+    return {
+      success: true,
+      message: `🗂️ Categoria "${params.name}" criada com sucesso para ${typeText}!`,
+      data: category,
+    }
+  } catch (error) {
+    console.error('❌ Erro ao criar categoria financeira:', error)
     throw error
   }
 }

@@ -1,5 +1,5 @@
 import Groq from 'groq-sdk'
-import { agentFunctions } from './agent-functions'
+import { ChatMessage } from '@/types'
 
 if (!process.env.GROQ_API_KEY) {
   throw new Error('Missing GROQ_API_KEY environment variable')
@@ -74,7 +74,7 @@ export async function generateChatResponse(
     )
 
     // Criar o contexto do usuário para o sistema
-    const systemMessage = `Você é o CareAI, um assistente pessoal inteligente em português brasileiro.
+    const systemMessage = `Você é o CareAI, um assistente pessoal inteligente em português brasileiro que ajuda com produtividade, organização e gestão financeira.
 
 CONTEXTO DO USUÁRIO:
 - Nome: ${context.name}
@@ -103,10 +103,13 @@ FUNÇÕES DISPONÍVEIS:
 - list_tasks: Listar tarefas {"completed": boolean, "priority": "string", "limit": number}
 - complete_task: Marcar como concluída {"taskId": "string"}
 - update_goal_progress: Atualizar progresso {"goalId": "string", "current": number}
+- create_financial_transaction: Registrar uma transação financeira (receita ou despesa)
+- create_financial_category: Criar uma nova categoria financeira
 
-PALAVRAS-CHAVE PARA AGENDAR:
-- "agendar", "marcar", "criar evento", "compromisso", "reunião", "consulta" = use create_event
-- "tarefa", "fazer", "lembrar de" = use create_task
+PALAVRAS-CHAVE PARA IDENTIFICAR:
+- "agendar", "marcar", "compromisso", "reunião", "consulta", "evento" = create_event
+- "rotina semanal", "agenda semanal", "cronograma" = create_event (criar vários eventos)
+- "tarefa", "fazer", "lembrar de" = create_task
 
 DATAS RELATIVAS - CALCULE CORRETAMENTE:
 - "hoje" = ${currentBrazil.date}
@@ -114,17 +117,17 @@ DATAS RELATIVAS - CALCULE CORRETAMENTE:
 - "depois de amanhã" = ${dayAfterTomorrow}
 - Para outros dias da semana, calcule a partir de hoje (${currentBrazil.date})
 
-EXEMPLOS COM DATAS CORRETAS:
+EXEMPLOS DE USO:
+
+**EVENTO ÚNICO:**
 Usuário: "Agendar reunião amanhã às 12:00"
 Resposta: "📅 Vou agendar essa reunião! [FUNCTION: create_event {"title": "Reunião", "startDate": "${tomorrow}T12:00:00", "category": "Reunião", "priority": "MEDIUM"}]"
 
-Usuário: "Marcar consulta médica hoje às 14h"
-Resposta: "🏥 Consulta agendada! [FUNCTION: create_event {"title": "Consulta médica", "startDate": "${
-      currentBrazil.date
-    }T14:00:00", "category": "Consulta", "priority": "HIGH"}]"
+**AGENDA SEMANAL (múltiplos eventos):**
+Usuário: "Crie uma agenda semanal de treino"
+Resposta: "💪 Vou criar sua agenda de treino semanal! [FUNCTION: create_event {"title": "Academia - Treino Superior", "startDate": "${tomorrow}T07:00:00", "category": "Pessoal", "priority": "MEDIUM"}]"
 
-Usuário: "Compromisso amanhã meio-dia na empresa" 
-Resposta: "📅 Compromisso agendado! [FUNCTION: create_event {"title": "Compromisso", "location": "empresa", "startDate": "${tomorrow}T12:00:00", "category": "Reunião", "priority": "MEDIUM"}]"
+(Note: Para agenda semanal, crie um evento por vez ou sugira ao usuário agendar cada dia)
 
 DIRETRIZES PARA DATAS:
 1. SEMPRE use a data correta baseada no contexto atual
@@ -139,6 +142,7 @@ DIRETRIZES GERAIS:
 3. Seja conciso mas natural
 4. Confirme as ações com data/hora corretas
 5. Para datas, calcule corretamente baseado em hoje (${currentBrazil.formatted})
+6. Para "agenda semanal", sugira criar eventos individuais para cada dia
 
 Seja natural e útil! Execute ações sempre que possível.`
 
@@ -242,5 +246,219 @@ Forneça uma resposta natural confirmando as ações e oferecendo mais ajuda se 
     return 'Ação executada com sucesso! Como posso ajudar mais?'
   }
 }
+
+// Adicionar as novas funções financeiras na lista de funções
+const agentFunctions = [
+  {
+    name: 'create_task',
+    description: 'Criar uma nova tarefa para o usuário',
+    parameters: {
+      type: 'object',
+      properties: {
+        title: {
+          type: 'string',
+          description: 'Título da tarefa',
+        },
+        description: {
+          type: 'string',
+          description: 'Descrição detalhada da tarefa',
+        },
+        priority: {
+          type: 'string',
+          enum: ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'],
+          description: 'Prioridade da tarefa',
+        },
+        category: {
+          type: 'string',
+          description: 'Categoria da tarefa (ex: Trabalho, Pessoal, Estudos)',
+        },
+        dueDate: {
+          type: 'string',
+          description: 'Data de vencimento no formato ISO (opcional)',
+        },
+      },
+      required: ['title', 'priority', 'category'],
+    },
+  },
+  {
+    name: 'create_note',
+    description: 'Criar uma nova nota/anotação',
+    parameters: {
+      type: 'object',
+      properties: {
+        title: {
+          type: 'string',
+          description: 'Título da nota',
+        },
+        content: {
+          type: 'string',
+          description: 'Conteúdo da nota',
+        },
+        category: {
+          type: 'string',
+          description: 'Categoria da nota (ex: Ideias, Reuniões, Lembretes)',
+        },
+        tags: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'Tags para organizar a nota',
+        },
+      },
+      required: ['title', 'content', 'category'],
+    },
+  },
+  {
+    name: 'create_goal',
+    description: 'Criar uma nova meta/objetivo',
+    parameters: {
+      type: 'object',
+      properties: {
+        title: {
+          type: 'string',
+          description: 'Título da meta',
+        },
+        description: {
+          type: 'string',
+          description: 'Descrição da meta',
+        },
+        target: {
+          type: 'number',
+          description: 'Valor alvo da meta',
+        },
+        category: {
+          type: 'string',
+          description: 'Categoria da meta (ex: Saúde, Carreira, Financeiro)',
+        },
+        deadline: {
+          type: 'string',
+          description: 'Data limite no formato ISO (opcional)',
+        },
+      },
+      required: ['title', 'target', 'category'],
+    },
+  },
+  {
+    name: 'create_event',
+    description: 'Criar um novo evento na agenda',
+    parameters: {
+      type: 'object',
+      properties: {
+        title: {
+          type: 'string',
+          description: 'Título do evento',
+        },
+        description: {
+          type: 'string',
+          description: 'Descrição do evento',
+        },
+        location: {
+          type: 'string',
+          description: 'Local do evento',
+        },
+        category: {
+          type: 'string',
+          description: 'Categoria do evento (ex: Reunião, Consulta, Lazer)',
+        },
+        startDate: {
+          type: 'string',
+          description: 'Data e hora de início no formato ISO',
+        },
+        endDate: {
+          type: 'string',
+          description: 'Data e hora de fim no formato ISO (opcional)',
+        },
+        allDay: {
+          type: 'boolean',
+          description: 'Se o evento dura o dia todo',
+        },
+        priority: {
+          type: 'string',
+          enum: ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'],
+          description: 'Prioridade do evento',
+        },
+        reminder: {
+          type: 'string',
+          enum: ['5min', '10min', '15min', '30min', '1hour', '2hours', '1day'],
+          description: 'Lembrete antes do evento',
+        },
+      },
+      required: ['title', 'startDate', 'category', 'priority'],
+    },
+  },
+  {
+    name: 'create_financial_transaction',
+    description: 'Registrar uma transação financeira (receita ou despesa)',
+    parameters: {
+      type: 'object',
+      properties: {
+        title: {
+          type: 'string',
+          description: 'Título da transação',
+        },
+        description: {
+          type: 'string',
+          description: 'Descrição da transação',
+        },
+        amount: {
+          type: 'number',
+          description: 'Valor da transação',
+        },
+        type: {
+          type: 'string',
+          enum: ['INCOME', 'EXPENSE'],
+          description: 'Tipo: INCOME para receitas, EXPENSE para despesas',
+        },
+        categoryName: {
+          type: 'string',
+          description:
+            'Nome da categoria (ex: Alimentação, Salário, Transporte)',
+        },
+        paymentMethod: {
+          type: 'string',
+          enum: ['CASH', 'DEBIT', 'CREDIT', 'PIX', 'TRANSFER'],
+          description: 'Forma de pagamento',
+        },
+        date: {
+          type: 'string',
+          description:
+            'Data da transação no formato ISO (opcional, usa hoje se omitido)',
+        },
+        tags: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'Tags para organizar a transação',
+        },
+      },
+      required: ['title', 'amount', 'type', 'categoryName'],
+    },
+  },
+  {
+    name: 'create_financial_category',
+    description: 'Criar uma nova categoria financeira',
+    parameters: {
+      type: 'object',
+      properties: {
+        name: {
+          type: 'string',
+          description: 'Nome da categoria',
+        },
+        type: {
+          type: 'string',
+          enum: ['INCOME', 'EXPENSE'],
+          description: 'Tipo: INCOME para receitas, EXPENSE para despesas',
+        },
+        icon: {
+          type: 'string',
+          description: 'Emoji representativo da categoria',
+        },
+        color: {
+          type: 'string',
+          description: 'Cor da categoria em hexadecimal (ex: #3B82F6)',
+        },
+      },
+      required: ['name', 'type'],
+    },
+  },
+]
 
 export default groq

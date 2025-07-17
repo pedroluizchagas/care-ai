@@ -18,6 +18,39 @@ export async function POST(request: NextRequest) {
     // Por enquanto usar usuário padrão (em produção seria do JWT/session)
     const userId = 'user_1'
 
+    // Garantir que o usuário existe antes de criar sessão
+    let user = await prisma.user.findUnique({
+      where: { id: userId },
+      include: { preferences: true },
+    })
+
+    if (!user) {
+      // Criar usuário padrão se não existir
+      user = await prisma.user.create({
+        data: {
+          id: userId,
+          email: 'user@careai.com',
+          name: 'Usuário CareAI',
+          phone: '+55 (11) 99999-9999',
+          location: 'São Paulo, SP',
+          position: 'Usuário',
+          company: 'CareAI',
+          bio: 'Usuário padrão do sistema CareAI',
+          preferences: {
+            create: {
+              theme: 'dark',
+              language: 'pt-BR',
+              emailNotifications: true,
+              pushNotifications: true,
+              soundNotifications: false,
+            },
+          },
+        },
+        include: { preferences: true },
+      })
+      console.log('✅ Usuário padrão criado:', user.id)
+    }
+
     // 1. Buscar ou criar sessão de chat
     let chatSession = await prisma.chatSession.findFirst({
       where: { id: sessionId, userId },
@@ -36,11 +69,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 2. Buscar contexto do usuário
-    const [user, recentTasks, recentNotes, currentGoals] = await Promise.all([
-      prisma.user.findUnique({
-        where: { id: userId },
-        include: { preferences: true },
-      }),
+    const [recentTasks, recentNotes, currentGoals] = await Promise.all([
       prisma.task.findMany({
         where: { userId },
         orderBy: { createdAt: 'desc' },
@@ -52,7 +81,7 @@ export async function POST(request: NextRequest) {
         take: 3,
       }),
       prisma.goal.findMany({
-        where: { userId, completed: false },
+        where: { userId, isCompleted: false },
         orderBy: { createdAt: 'desc' },
       }),
     ])

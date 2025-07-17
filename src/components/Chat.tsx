@@ -1,13 +1,13 @@
 'use client'
 
-import { useState, useRef, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import {
   PaperAirplaneIcon,
-  SparklesIcon,
-  CheckCircleIcon,
-  XCircleIcon,
   UserIcon,
   ClockIcon,
+  CheckCircleIcon,
+  XCircleIcon,
+  SparklesIcon,
 } from '@heroicons/react/24/outline'
 import { SparklesIcon as SparklesSolidIcon } from '@heroicons/react/24/solid'
 import FreechAvatar from './FreechAvatar'
@@ -22,6 +22,11 @@ interface Message {
     success: boolean
     message: string
   }>
+  functionCalls?: Array<{
+    name: string
+    parameters: any
+    result: string
+  }>
 }
 
 export default function Chat() {
@@ -30,7 +35,7 @@ export default function Chat() {
       id: '1',
       role: 'assistant',
       content:
-        'Olá! 👋 Eu sou o **Freech**, seu assistente inteligente. Posso ajudar você a:\n\n✅ **Criar tarefas** - "Preciso estudar Python"\n📝 **Fazer anotações** - "Anote que gostei do restaurante X"\n🎯 **Definir metas** - "Quero correr 5km por semana"\n📅 **Agendar compromissos** - "Marcar reunião amanhã às 14h"\n📋 **Organizar sua vida** - "Que tarefas tenho pendentes?"\n\nO que posso fazer por você hoje? 🚀',
+        'Olá! 👋 Eu sou o **Freech**, seu assistente inteligente. Posso ajudar você a:\n\n✅ **Criar tarefas** - "Preciso estudar Python"\n📝 **Fazer anotações** - "Anote que gostei do restaurante X"\n🎯 **Definir metas** - "Quero correr 5km por semana"\n📅 **Agendar compromissos** - "Marcar reunião amanhã às 14h"\n📋 **Organizar rotinas** - "Crie uma rotina matinal com exercício e trabalho"\n💰 **Gerenciar finanças** - "Registre um gasto de R$ 50 no supermercado"\n📊 **Organizar sua vida** - "Que tarefas tenho pendentes?"\n\nO que posso fazer por você hoje? 🚀',
       timestamp: new Date(),
     },
   ])
@@ -85,6 +90,39 @@ export default function Chat() {
         content: data.message,
         timestamp: new Date(),
         actions: data.actionsExecuted > 0 ? data.functions : undefined,
+        functionCalls:
+          data.tool_calls && data.tool_calls.length > 0
+            ? data.tool_calls.map((toolCall: any) => ({
+                name: toolCall.name,
+                parameters: JSON.parse(toolCall.arguments),
+                result: '',
+              }))
+            : undefined,
+      }
+
+      // Processar function calls se existirem
+      if (
+        assistantMessage.functionCalls &&
+        assistantMessage.functionCalls.length > 0
+      ) {
+        for (const toolCall of assistantMessage.functionCalls) {
+          if (toolCall.name) {
+            const functionResult = await handleFunctionCall(
+              toolCall.name,
+              toolCall.parameters
+            )
+
+            // Adicionar o resultado à mensagem
+            toolCall.result = functionResult
+
+            // Atualizar o conteúdo da mensagem para incluir o resultado
+            if (assistantMessage.content) {
+              assistantMessage.content += '\n\n' + functionResult
+            } else {
+              assistantMessage.content = functionResult
+            }
+          }
+        }
       }
 
       setMessages((prev) => [...prev, assistantMessage])
@@ -119,9 +157,11 @@ export default function Chat() {
       create_note: '📝',
       create_goal: '🎯',
       create_event: '📅',
-      list_tasks: '📋',
+      create_routine: '📋',
+      add_routine_block: '⚡',
+      list_tasks: '📊',
       complete_task: '✔️',
-      update_goal_progress: '📊',
+      update_goal_progress: '📈',
     }
 
     return (
@@ -143,6 +183,177 @@ export default function Chat() {
     )
   }
 
+  // Handler para function calls
+  const handleFunctionCall = async (
+    functionName: string,
+    parameters: any
+  ): Promise<string> => {
+    try {
+      const userId = 'user_1' // ID fixo para desenvolvimento
+
+      switch (functionName) {
+        case 'create_task':
+          const taskResponse = await fetch('/api/tasks', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ ...parameters, userId }),
+          })
+          const taskResult = await taskResponse.json()
+          if (taskResult.success) {
+            return `✅ Tarefa "${parameters.title}" criada com sucesso! Prioridade: ${parameters.priority}, Categoria: ${parameters.category}`
+          }
+          return `❌ Erro ao criar tarefa: ${taskResult.error}`
+
+        case 'create_note':
+          const noteResponse = await fetch('/api/notes', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ ...parameters, userId }),
+          })
+          const noteResult = await noteResponse.json()
+          if (noteResult.success) {
+            return `📝 Nota "${parameters.title}" criada com sucesso! Categoria: ${parameters.category}`
+          }
+          return `❌ Erro ao criar nota: ${noteResult.error}`
+
+        case 'create_goal':
+          const goalResponse = await fetch('/api/goals', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ ...parameters, userId }),
+          })
+          const goalResult = await goalResponse.json()
+          if (goalResult.success) {
+            return `🎯 Meta "${parameters.title}" criada com sucesso! Alvo: ${parameters.target}, Categoria: ${parameters.category}`
+          }
+          return `❌ Erro ao criar meta: ${goalResult.error}`
+
+        case 'create_event':
+          const eventResponse = await fetch('/api/events', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ ...parameters, userId }),
+          })
+          const eventResult = await eventResponse.json()
+          if (eventResult.success) {
+            return `📅 Evento "${
+              parameters.title
+            }" agendado com sucesso! Data: ${new Date(
+              parameters.startDate
+            ).toLocaleDateString('pt-BR')}`
+          }
+          return `❌ Erro ao criar evento: ${eventResult.error}`
+
+        case 'create_financial_transaction':
+          // Primeiro, buscar ou criar a categoria
+          let categoryId = ''
+
+          // Buscar categoria existente
+          const categoriesResponse = await fetch(
+            `/api/finances/categories?userId=${userId}&type=${parameters.type}`
+          )
+          const categoriesResult = await categoriesResponse.json()
+
+          if (categoriesResult.success) {
+            const existingCategory = categoriesResult.categories.find(
+              (cat: any) =>
+                cat.name.toLowerCase() === parameters.categoryName.toLowerCase()
+            )
+
+            if (existingCategory) {
+              categoryId = existingCategory.id
+            } else {
+              // Criar nova categoria se não existir
+              const newCategoryResponse = await fetch(
+                '/api/finances/categories',
+                {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    name: parameters.categoryName,
+                    type: parameters.type,
+                    userId,
+                    icon: parameters.type === 'INCOME' ? '💰' : '💸',
+                    color: parameters.type === 'INCOME' ? '#10B981' : '#EF4444',
+                  }),
+                }
+              )
+              const newCategoryResult = await newCategoryResponse.json()
+              if (newCategoryResult.success) {
+                categoryId = newCategoryResult.category.id
+              } else {
+                return `❌ Erro ao criar categoria: ${newCategoryResult.error}`
+              }
+            }
+          }
+
+          // Criar a transação
+          const transactionResponse = await fetch(
+            '/api/finances/transactions',
+            {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                title: parameters.title,
+                description: parameters.description,
+                amount: parameters.amount,
+                type: parameters.type,
+                categoryId,
+                paymentMethod: parameters.paymentMethod || 'CASH',
+                date: parameters.date || new Date().toISOString(),
+                tags: parameters.tags || [],
+                userId,
+              }),
+            }
+          )
+          const transactionResult = await transactionResponse.json()
+          if (transactionResult.success) {
+            const typeText =
+              parameters.type === 'INCOME' ? 'receita' : 'despesa'
+            const amountText = `R$ ${parameters.amount.toLocaleString('pt-BR', {
+              minimumFractionDigits: 2,
+            })}`
+            return `💰 ${typeText === 'receita' ? '📈' : '📉'} ${
+              typeText.charAt(0).toUpperCase() + typeText.slice(1)
+            } "${
+              parameters.title
+            }" registrada com sucesso! Valor: ${amountText}, Categoria: ${
+              parameters.categoryName
+            }`
+          }
+          return `❌ Erro ao registrar transação: ${transactionResult.error}`
+
+        case 'create_financial_category':
+          const categoryResponse = await fetch('/api/finances/categories', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              ...parameters,
+              userId,
+              icon:
+                parameters.icon || (parameters.type === 'INCOME' ? '💰' : '💸'),
+              color:
+                parameters.color ||
+                (parameters.type === 'INCOME' ? '#10B981' : '#EF4444'),
+            }),
+          })
+          const categoryResult = await categoryResponse.json()
+          if (categoryResult.success) {
+            const typeText =
+              parameters.type === 'INCOME' ? 'receitas' : 'despesas'
+            return `🗂️ Categoria "${parameters.name}" criada com sucesso para ${typeText}!`
+          }
+          return `❌ Erro ao criar categoria: ${categoryResult.error}`
+
+        default:
+          return `❌ Função "${functionName}" não reconhecida`
+      }
+    } catch (error) {
+      console.error('Erro ao executar função:', error)
+      return `❌ Erro interno ao executar "${functionName}"`
+    }
+  }
+
   return (
     <div className="h-full bg-gradient-main flex flex-col">
       {/* Header */}
@@ -154,7 +365,7 @@ export default function Chat() {
                 <FreechAvatar size="lg" />
               </div>
               <div>
-                <h1 className="text-xl font-bold text-white">CareAI</h1>
+                <h1 className="text-xl font-bold text-white">Freech</h1>
                 <p className="text-white/60 text-sm">Assistente Inteligente</p>
               </div>
             </div>

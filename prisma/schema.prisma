@@ -32,6 +32,12 @@ model User {
   chatSessions  ChatSession[]
   achievements  UserAchievement[]
   preferences   UserPreferences?
+  
+  // Financial relationships
+  financialCategories    FinancialCategory[]
+  financialTransactions  FinancialTransaction[]
+  financialBudgets       FinancialBudget[]
+  financialAccounts      FinancialAccount[]
 
   @@map("users")
 }
@@ -54,16 +60,16 @@ model UserPreferences {
 }
 
 model Task {
-  id          String    @id @default(cuid())
+  id          String   @id @default(cuid())
   title       String
   description String?
-  priority    String    @default("MEDIUM")
-  category    String    @default("Trabalho")
-  completed   Boolean   @default(false)
+  completed   Boolean  @default(false)
+  priority    String   @default("MEDIUM") // LOW, MEDIUM, HIGH, CRITICAL
+  category    String   @default("Geral")
   dueDate     DateTime?
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
   userId      String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -75,10 +81,10 @@ model Note {
   title     String
   content   String
   category  String   @default("Geral")
-  tags      String   @default("")
+  tags      String   @default("") // JSON array as string
+  userId    String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  userId    String
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -86,18 +92,17 @@ model Note {
 }
 
 model Goal {
-  id          String     @id @default(cuid())
+  id          String    @id @default(cuid())
   title       String
   description String?
-  target      Int
-  current     Int        @default(0)
-  category    String     @default("Pessoal")
-  status      String     @default("ACTIVE")
-  completed   Boolean    @default(false)
+  target      Float
+  current     Float     @default(0)
+  category    String    @default("Pessoal")
   deadline    DateTime?
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt
+  isCompleted Boolean   @default(false)
   userId      String
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -162,19 +167,167 @@ model Event {
   title       String
   description String?
   location    String?
-  category    String    @default("Reunião")
+  category    String    @default("Evento")
   startDate   DateTime
   endDate     DateTime?
   allDay      Boolean   @default(false)
-  priority    String    @default("MEDIUM")
-  status      String    @default("SCHEDULED") // SCHEDULED, CANCELLED, COMPLETED
-  reminder    String?   // "15min", "30min", "1hour", "1day"
-  attendees   String?   // JSON array of attendee emails/names
+  priority    String    @default("MEDIUM") // LOW, MEDIUM, HIGH, CRITICAL
+  reminder    String? // 15min, 30min, 1hour, 1day
+  attendees   String? // comma-separated
+  userId      String
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
-  userId      String
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("events")
+}
+
+// Financial Models
+model FinancialCategory {
+  id        String   @id @default(cuid())
+  name      String
+  icon      String   @default("💰")
+  color     String   @default("#3B82F6")
+  type      String   // INCOME, EXPENSE
+  userId    String
+  isDefault Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user         User                    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions FinancialTransaction[]
+  budgets      FinancialBudget[]
+
+  @@map("financial_categories")
+}
+
+model FinancialTransaction {
+  id            String   @id @default(cuid())
+  title         String
+  description   String?
+  amount        Float
+  type          String   // INCOME, EXPENSE
+  categoryId    String
+  paymentMethod String   @default("CASH") // CASH, DEBIT, CREDIT, PIX, TRANSFER
+  date          DateTime @default(now())
+  recurrence    String   @default("NONE") // NONE, DAILY, WEEKLY, MONTHLY, YEARLY
+  isRecurring   Boolean  @default(false)
+  tags          String   @default("") // JSON array as string
+  userId        String
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  user     User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category FinancialCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@map("financial_transactions")
+}
+
+model FinancialBudget {
+  id           String   @id @default(cuid())
+  categoryId   String
+  month        Int
+  year         Int
+  budgetAmount Float
+  spentAmount  Float    @default(0)
+  userId       String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  user     User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category FinancialCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@unique([categoryId, month, year])
+  @@map("financial_budgets")
+}
+
+model FinancialAccount {
+  id        String   @id @default(cuid())
+  name      String
+  type      String   @default("CHECKING") // CHECKING, SAVINGS, INVESTMENT, CASH
+  balance   Float    @default(0)
+  currency  String   @default("BRL")
+  bankName  String?
+  isActive  Boolean  @default(true)
+  userId    String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("financial_accounts")
+}
+
+// Routine Models (manter para compatibilidade)
+model RoutineTemplate {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  season      String   @default("all") // spring, summer, autumn, winter, all
+  userId      String
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  dayRoutines DayRoutine[]
+
+  @@map("routine_templates")
+}
+
+model DayRoutine {
+  id                String   @id @default(cuid())
+  dayOfWeek         Int      // 0-6 (Sunday = 0)
+  name              String   // "Segunda-feira", etc.
+  isActive          Boolean  @default(true)
+  routineTemplateId String
+
+  routineTemplate RoutineTemplate @relation(fields: [routineTemplateId], references: [id], onDelete: Cascade)
+  blocks          RoutineBlock[]
+
+  @@map("day_routines")
+}
+
+model RoutineBlock {
+  id           String   @id @default(cuid())
+  title        String
+  description  String?
+  startTime    String   // HH:MM format
+  endTime      String   // HH:MM format
+  category     String
+  color        String   @default("#3B82F6")
+  isActive     Boolean  @default(true)
+  isFlexible   Boolean  @default(false)
+  tags         String   @default("") // JSON array as string
+  dayRoutineId String
+
+  dayRoutine   DayRoutine          @relation(fields: [dayRoutineId], references: [id], onDelete: Cascade)
+  completions  RoutineCompletion[]
+
+  @@map("routine_blocks")
+}
+
+model RoutineCompletion {
+  id              String    @id @default(cuid())
+  date            String    // YYYY-MM-DD format
+  completedAt     DateTime  @default(now())
+  notes           String?
+  rating          Int?      // 1-5
+  duration        Int?      // minutes actually spent
+  routineBlockId  String
+
+  routineBlock RoutineBlock @relation(fields: [routineBlockId], references: [id], onDelete: Cascade)
+
+  @@unique([routineBlockId, date])
+  @@map("routine_completions")
+}
+
+model RoutineCategory {
+  id          String @id @default(cuid())
+  name        String @unique
+  color       String
+  icon        String
+  description String?
+
+  @@map("routine_categories")
 } 

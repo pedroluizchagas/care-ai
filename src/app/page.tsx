@@ -10,6 +10,7 @@ import Notes from '@/components/Notes'
 import Goals from '@/components/Goals'
 import Calendar from '@/components/Calendar'
 import Events from '@/components/Events'
+import Finances from '@/components/Finances'
 import Settings from '@/components/Settings'
 import Profile from '@/components/Profile'
 
@@ -20,6 +21,7 @@ type ActiveView =
   | 'notes'
   | 'goals'
   | 'calendar'
+  | 'finances'
   | 'settings'
   | 'profile'
 
@@ -41,6 +43,8 @@ export default function Home() {
         return <Goals />
       case 'calendar':
         return <Events />
+      case 'finances':
+        return <Finances />
       case 'settings':
         return <Settings />
       case 'profile':
@@ -64,6 +68,8 @@ export default function Home() {
         return 'Metas'
       case 'calendar':
         return 'Agenda'
+      case 'finances':
+        return 'Finanças'
       case 'settings':
         return 'Configurações'
       case 'profile':
